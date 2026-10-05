@@ -1,0 +1,11 @@
+{
+  "name": "bounded-subagent-demo",
+  "version": "1.0.0",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "demo": "node demo.js",
+    "test": "node --test test.mjs"
+  },
+  "description": "A small zero-dependency demo of a coordinator routing work to a capability-bounded specialist sub-agent."
+}
