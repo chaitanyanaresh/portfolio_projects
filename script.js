@@ -6,6 +6,168 @@ if (year) {
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const finePointer = window.matchMedia("(pointer: fine) and (hover: hover)").matches;
 
+
+/* Portfolio game entry */
+const entryScreen = document.getElementById("entry-screen");
+const entryPrompt = document.getElementById("entry-prompt");
+const puzzlePanel = document.getElementById("name-puzzle");
+const playIntro = document.getElementById("play-intro");
+const skipIntro = document.getElementById("skip-intro");
+const puzzleSkip = document.getElementById("puzzle-skip");
+const puzzleTiles = [...document.querySelectorAll("#puzzle-tiles button")];
+const puzzleAnswer = document.getElementById("puzzle-answer");
+const puzzleMessage = document.getElementById("puzzle-message");
+const puzzleTarget = "CHAITANYA";
+let puzzleIndex = 0;
+
+const setPortfolioLive = () => {
+  document.body.classList.remove("game-locked");
+  document.body.classList.add("portfolio-live");
+};
+
+const showAccessToast = (message = "ACCESS GRANTED // WELCOME") => {
+  const toast = document.createElement("div");
+  toast.className = "access-toast";
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  requestAnimationFrame(() => toast.classList.add("show"));
+  window.setTimeout(() => {
+    toast.classList.remove("show");
+    window.setTimeout(() => toast.remove(), 250);
+  }, 1500);
+};
+
+const unlockPortfolio = (message) => {
+  try { sessionStorage.setItem("cnaPortfolioUnlocked", "1"); } catch (_) {}
+  setPortfolioLive();
+  if (entryScreen) {
+    entryScreen.classList.add("is-hidden");
+    window.setTimeout(() => {
+      entryScreen.hidden = true;
+    }, prefersReducedMotion ? 0 : 680);
+  }
+  showAccessToast(message);
+};
+
+if (puzzleAnswer) {
+  puzzleTarget.split("").forEach(() => {
+    const slot = document.createElement("span");
+    slot.textContent = "·";
+    puzzleAnswer.appendChild(slot);
+  });
+}
+
+let alreadyUnlocked = false;
+try { alreadyUnlocked = sessionStorage.getItem("cnaPortfolioUnlocked") === "1"; } catch (_) {}
+if (alreadyUnlocked) {
+  if (entryScreen) entryScreen.hidden = true;
+  setPortfolioLive();
+}
+
+if (playIntro) {
+  playIntro.addEventListener("click", () => {
+    if (entryPrompt) entryPrompt.hidden = true;
+    if (puzzlePanel) puzzlePanel.hidden = false;
+    const firstTile = puzzleTiles.find((tile) => tile.dataset.letter === puzzleTarget[0]);
+    if (firstTile) firstTile.focus();
+  });
+}
+
+if (skipIntro) {
+  skipIntro.addEventListener("click", () => unlockPortfolio("PORTFOLIO UNLOCKED // DIRECT ACCESS"));
+}
+
+if (puzzleSkip) {
+  puzzleSkip.addEventListener("click", () => unlockPortfolio("PORTFOLIO UNLOCKED // CHALLENGE SKIPPED"));
+}
+
+puzzleTiles.forEach((tile) => {
+  tile.addEventListener("click", () => {
+    if (tile.disabled || puzzleIndex >= puzzleTarget.length) return;
+    const letter = tile.dataset.letter || "";
+    const expected = puzzleTarget[puzzleIndex];
+
+    if (letter === expected) {
+      tile.disabled = true;
+      tile.classList.add("solved");
+      const slot = puzzleAnswer?.children[puzzleIndex];
+      if (slot) {
+        slot.textContent = letter;
+        slot.classList.add("filled");
+      }
+      puzzleIndex += 1;
+
+      if (puzzleIndex === puzzleTarget.length) {
+        if (puzzleMessage) {
+          puzzleMessage.textContent = "Identity confirmed. Access granted.";
+          puzzleMessage.classList.add("success");
+        }
+        window.setTimeout(() => unlockPortfolio("QUEST COMPLETE // ACCESS GRANTED"), prefersReducedMotion ? 0 : 700);
+      } else if (puzzleMessage) {
+        puzzleMessage.textContent = `Good. Next letter: ${puzzleIndex + 1} of ${puzzleTarget.length}.`;
+      }
+    } else {
+      tile.classList.remove("wrong");
+      void tile.offsetWidth;
+      tile.classList.add("wrong");
+      if (puzzleMessage) puzzleMessage.textContent = "Not that one yet. Try the next letter in the name.";
+      window.setTimeout(() => tile.classList.remove("wrong"), 340);
+    }
+  });
+});
+
+/* Lightweight game HUD and section tracking */
+const siteHeader = document.querySelector(".site-header");
+const hudProgress = document.getElementById("hud-progress");
+const hudPercent = document.getElementById("hud-percent");
+const navItems = [...document.querySelectorAll(".nav-links a[href^='#']")];
+const trackedSections = navItems
+  .map((link) => document.querySelector(link.getAttribute("href")))
+  .filter(Boolean);
+
+const updateGameHUD = () => {
+  const max = document.documentElement.scrollHeight - window.innerHeight;
+  const ratio = max > 0 ? Math.min(Math.max(window.scrollY / max, 0), 1) : 0;
+  if (hudProgress) hudProgress.style.transform = `scaleX(${ratio})`;
+  if (hudPercent) hudPercent.textContent = `${String(Math.round(ratio * 100)).padStart(2, "0")}%`;
+  if (siteHeader) siteHeader.classList.toggle("scrolled", window.scrollY > 24);
+
+  let currentId = "";
+  trackedSections.forEach((section) => {
+    const rect = section.getBoundingClientRect();
+    if (rect.top <= 150) currentId = section.id;
+  });
+  navItems.forEach((link) => {
+    link.classList.toggle("active", link.getAttribute("href") === `#${currentId}`);
+  });
+};
+
+updateGameHUD();
+window.addEventListener("scroll", updateGameHUD, { passive: true });
+window.addEventListener("resize", updateGameHUD);
+
+if (!prefersReducedMotion && finePointer) {
+  let lastTrail = 0;
+  window.addEventListener("mousemove", (event) => {
+    const now = performance.now();
+    if (now - lastTrail < 42) return;
+    lastTrail = now;
+    const particle = document.createElement("span");
+    particle.className = "cursor-particle";
+    particle.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0) translate(-50%, -50%)`;
+    document.body.appendChild(particle);
+    window.setTimeout(() => particle.remove(), 560);
+  }, { passive: true });
+
+  document.addEventListener("pointerdown", (event) => {
+    const burst = document.createElement("span");
+    burst.className = "click-burst";
+    burst.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0) translate(-50%, -50%)`;
+    document.body.appendChild(burst);
+    window.setTimeout(() => burst.remove(), 520);
+  });
+}
+
 const revealItems = [...document.querySelectorAll(".reveal")];
 
 if (!prefersReducedMotion && "IntersectionObserver" in window) {

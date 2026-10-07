@@ -10,8 +10,59 @@
   <meta property="og:type" content="website" />
   <title>Chaitanya Naresh Arroju | Full-Stack Software Engineer</title>
   <link rel="stylesheet" href="styles.css" />
+  <noscript><style>.entry-screen,.game-hud{display:none!important}body{overflow:auto!important}</style></noscript>
 </head>
-<body>
+<body class="game-locked">
+  <section class="entry-screen" id="entry-screen" role="dialog" aria-modal="true" aria-labelledby="entry-title">
+    <div class="entry-grid" aria-hidden="true"></div>
+    <div class="entry-console">
+      <div class="console-topline">
+        <span class="console-status"><i></i> PORTFOLIO SYSTEM ONLINE</span>
+        <span class="console-code">CNA // 01</span>
+      </div>
+
+      <div id="entry-prompt" class="entry-step">
+        <p class="console-label">ACCESS REQUEST</p>
+        <h1 id="entry-title">Want to know more about Chaitanya?</h1>
+        <p class="entry-copy">Choose the quick challenge for a more interactive introduction, or enter the portfolio immediately.</p>
+        <div class="entry-actions">
+          <button class="game-button primary" id="play-intro" type="button">Yes — start challenge</button>
+          <button class="game-button ghost" id="skip-intro" type="button">No — enter portfolio</button>
+        </div>
+        <p class="entry-note">Recruiter mode: the challenge is optional and takes only a few seconds.</p>
+      </div>
+
+      <div id="name-puzzle" class="entry-step puzzle-step" hidden>
+        <p class="console-label">MINI QUEST // IDENTITY UNLOCK</p>
+        <h2>Decode my first name.</h2>
+        <p class="entry-copy">Tap the scrambled letters in the correct order to spell <strong>CHAITANYA</strong>.</p>
+        <div class="puzzle-answer" id="puzzle-answer" aria-live="polite"></div>
+        <div class="puzzle-tiles" id="puzzle-tiles" aria-label="Name puzzle letter tiles">
+          <button type="button" data-letter="A">A</button>
+          <button type="button" data-letter="Y">Y</button>
+          <button type="button" data-letter="C">C</button>
+          <button type="button" data-letter="T">T</button>
+          <button type="button" data-letter="A">A</button>
+          <button type="button" data-letter="H">H</button>
+          <button type="button" data-letter="N">N</button>
+          <button type="button" data-letter="I">I</button>
+          <button type="button" data-letter="A">A</button>
+        </div>
+        <p class="puzzle-message" id="puzzle-message" aria-live="polite">Sequence locked. Start with the first letter.</p>
+        <button class="puzzle-skip" id="puzzle-skip" type="button">Skip challenge and enter</button>
+      </div>
+
+      <div class="entry-corners" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    </div>
+  </section>
+
+  <aside class="game-hud" aria-hidden="true">
+    <span class="hud-player">PLAYER // CHAITANYA</span>
+    <span class="hud-dot"></span>
+    <span class="hud-state">PROFILE ONLINE</span>
+    <div class="hud-track"><span id="hud-progress"></span></div>
+    <span class="hud-percent" id="hud-percent">00%</span>
+  </aside>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <header class="site-header" aria-label="Primary">
