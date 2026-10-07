@@ -1742,3 +1742,162 @@ body.portfolio-live .pet-playground {
     display: none !important;
   }
 }
+
+
+/* Enhanced pet animation v2 */
+.pet-playground::before {
+  content: "";
+  position: absolute;
+  left: -18%;
+  right: -18%;
+  bottom: -34px;
+  height: 80px;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 60%, rgba(115,167,255,.10), transparent 20%),
+    radial-gradient(circle at 72% 55%, rgba(142,230,207,.10), transparent 18%);
+  filter: blur(12px);
+  animation: petAmbientDrift 10s ease-in-out infinite alternate;
+}
+
+.pet-playground.scrolling .pet-lane {
+  box-shadow: 0 0 14px rgba(142,230,207,.16);
+}
+
+.pet-playground.scrolling .pet-body {
+  animation-duration: .28s;
+}
+
+.pet-dog.excited .pet-body {
+  animation: dogExcited .24s ease-in-out 5 alternate;
+}
+
+.pet-cat.pounce .pet-body {
+  animation: catPounce .62s cubic-bezier(.2,.8,.2,1);
+}
+
+.pet-playground.celebrate .pet-dog .pet-body,
+.pet-playground.celebrate .pet-cat .pet-body {
+  animation: petCelebrate .42s ease-in-out 5 alternate !important;
+}
+
+.pet-paw {
+  position: absolute;
+  bottom: 5px;
+  z-index: 1;
+  pointer-events: none;
+  color: rgba(142,230,207,.38);
+  font-size: 10px;
+  line-height: 1;
+  transform: translateX(-50%) scale(.72) rotate(var(--paw-rotate, 0deg));
+  animation: pawFade 1.9s ease-out forwards;
+}
+
+.pet-spark {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 50006;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: var(--accent-2);
+  box-shadow: 0 0 10px rgba(142,230,207,.85);
+  animation: petSpark 760ms ease-out forwards;
+}
+
+.pet-emote {
+  position: absolute;
+  z-index: 4;
+  bottom: 40px;
+  padding: 3px 7px;
+  border: 1px solid rgba(142,230,207,.22);
+  border-radius: 999px;
+  color: #dce7f5;
+  background: rgba(8,17,31,.88);
+  font-size: .63rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  animation: petEmote 1.15s ease-out forwards;
+}
+
+.site-footer {
+  position: relative;
+  overflow: hidden;
+}
+
+.site-footer::before {
+  content: "";
+  position: absolute;
+  left: -35%;
+  bottom: 0;
+  width: 32%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(142,230,207,.7), transparent);
+  box-shadow: 0 0 14px rgba(142,230,207,.24);
+  animation: footerScan 7.5s linear infinite;
+}
+
+@keyframes petAmbientDrift {
+  from { transform: translateX(-3%) scale(1); opacity: .6; }
+  to { transform: translateX(4%) scale(1.08); opacity: 1; }
+}
+
+@keyframes dogExcited {
+  from { transform: translateY(0) rotate(-4deg) scale(1); }
+  to { transform: translateY(-6px) rotate(4deg) scale(1.05); }
+}
+
+@keyframes catPounce {
+  0% { transform: translateY(0) rotate(0) scale(1); }
+  38% { transform: translateY(-20px) rotate(-7deg) scale(1.08); }
+  70% { transform: translateY(-6px) rotate(4deg) scale(.98); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+
+@keyframes petCelebrate {
+  from { transform: translateY(0) rotate(-3deg) scale(1); }
+  to { transform: translateY(-10px) rotate(3deg) scale(1.09); }
+}
+
+@keyframes pawFade {
+  0% { opacity: 0; transform: translateX(-50%) scale(.55) rotate(var(--paw-rotate, 0deg)); }
+  24% { opacity: .48; }
+  100% { opacity: 0; transform: translateX(-50%) translateY(-7px) scale(1) rotate(var(--paw-rotate, 0deg)); }
+}
+
+@keyframes petSpark {
+  from {
+    opacity: .9;
+    transform: translate3d(var(--spark-x), var(--spark-y), 0) translate(-50%,-50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(calc(var(--spark-x) + var(--spark-dx)), calc(var(--spark-y) + var(--spark-dy)), 0) translate(-50%,-50%) scale(.1);
+  }
+}
+
+@keyframes petEmote {
+  0% { opacity: 0; transform: translateY(8px) scale(.8); }
+  18% { opacity: 1; transform: translateY(0) scale(1); }
+  72% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-13px) scale(.92); }
+}
+
+@keyframes footerScan {
+  from { transform: translateX(0); }
+  to { transform: translateX(520%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-playground::before,
+  .pet-paw,
+  .pet-spark,
+  .pet-emote,
+  .site-footer::before {
+    display: none !important;
+  }
+}
