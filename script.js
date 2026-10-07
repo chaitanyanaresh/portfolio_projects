@@ -300,7 +300,7 @@ if (!prefersReducedMotion && finePointer) {
     <div class="pet-lane"></div>
     <div class="pet pet-dog" id="pet-dog"><span class="pet-body">🐕</span></div>
     <div class="pet pet-cat" id="pet-cat"><span class="pet-body">🐈</span></div>
-    <div class="pet-hint">click to toss the ball</div>
+    <div class="pet-hint">click anywhere to toss the ball</div>
   `;
   document.body.appendChild(playground);
 
@@ -308,18 +308,104 @@ if (!prefersReducedMotion && finePointer) {
   const cat = playground.querySelector("#pet-cat");
   const hint = playground.querySelector(".pet-hint");
   let lastBallTime = 0;
+  let lastPawTime = 0;
+  let nearFinish = false;
+  let celebrated = false;
+  let scrollTimer = 0;
+
+  const spawnPaw = (pet, rotate = 0) => {
+    if (!pet || !document.body.classList.contains("portfolio-live")) return;
+    const rect = pet.getBoundingClientRect();
+    const paw = document.createElement("span");
+    paw.className = "pet-paw";
+    paw.textContent = "•";
+    paw.style.left = `${Math.max(12, Math.min(window.innerWidth - 12, rect.left + rect.width / 2))}px`;
+    paw.style.setProperty("--paw-rotate", `${rotate}deg`);
+    playground.appendChild(paw);
+    window.setTimeout(() => paw.remove(), 1950);
+  };
+
+  const spawnSparkBurst = (x, y, count = 8) => {
+    if (prefersReducedMotion) return;
+    for (let i = 0; i < count; i += 1) {
+      const spark = document.createElement("span");
+      spark.className = "pet-spark";
+      const angle = (Math.PI * 2 * i) / count;
+      const distance = 18 + (i % 3) * 9;
+      spark.style.setProperty("--spark-x", `${x}px`);
+      spark.style.setProperty("--spark-y", `${y}px`);
+      spark.style.setProperty("--spark-dx", `${Math.cos(angle) * distance}px`);
+      spark.style.setProperty("--spark-dy", `${Math.sin(angle) * distance - 12}px`);
+      document.body.appendChild(spark);
+      window.setTimeout(() => spark.remove(), 820);
+    }
+  };
+
+  const showEmote = (pet, value) => {
+    if (!pet) return;
+    const emote = document.createElement("span");
+    emote.className = "pet-emote";
+    emote.textContent = value;
+    const rect = pet.getBoundingClientRect();
+    emote.style.left = `${Math.max(10, Math.min(window.innerWidth - 54, rect.left))}px`;
+    playground.appendChild(emote);
+    window.setTimeout(() => emote.remove(), 1200);
+  };
+
+  const celebrateFinish = () => {
+    if (celebrated || prefersReducedMotion) return;
+    celebrated = true;
+    playground.classList.add("celebrate");
+    const dogRect = dog?.getBoundingClientRect();
+    const catRect = cat?.getBoundingClientRect();
+    if (dogRect) spawnSparkBurst(dogRect.left + dogRect.width / 2, window.innerHeight - 34, 10);
+    if (catRect) spawnSparkBurst(catRect.left + catRect.width / 2, window.innerHeight - 34, 10);
+    showEmote(dog, "★");
+    showEmote(cat, "★");
+    window.setTimeout(() => playground.classList.remove("celebrate"), 2300);
+  };
 
   const updatePetState = () => {
     const max = document.documentElement.scrollHeight - window.innerHeight;
     const ratio = max > 0 ? window.scrollY / max : 0;
-    playground.classList.toggle("near-finish", ratio > 0.965);
+    nearFinish = ratio > 0.965;
+    playground.classList.toggle("near-finish", nearFinish);
+    if (nearFinish) celebrateFinish();
+    if (!nearFinish && ratio < 0.92) celebrated = false;
   };
 
   updatePetState();
-  window.addEventListener("scroll", updatePetState, { passive: true });
+  window.addEventListener("scroll", () => {
+    updatePetState();
+    playground.classList.add("scrolling");
+    window.clearTimeout(scrollTimer);
+    scrollTimer = window.setTimeout(() => playground.classList.remove("scrolling"), 180);
+
+    const now = performance.now();
+    if (!nearFinish && now - lastPawTime > 760) {
+      lastPawTime = now;
+      spawnPaw(dog, -8);
+      window.setTimeout(() => spawnPaw(cat, 8), 180);
+    }
+  }, { passive: true });
   window.addEventListener("resize", updatePetState);
 
   if (!prefersReducedMotion && finePointer) {
+    const runIdleAction = () => {
+      if (!document.body.classList.contains("portfolio-live") || nearFinish) return;
+      if (Math.random() > .5) {
+        dog?.classList.add("excited");
+        showEmote(dog, "!");
+        window.setTimeout(() => dog?.classList.remove("excited"), 1300);
+      } else {
+        cat?.classList.add("pounce");
+        showEmote(cat, "✦");
+        window.setTimeout(() => cat?.classList.remove("pounce"), 850);
+      }
+    };
+
+    window.setInterval(runIdleAction, 5200);
+
     document.addEventListener("pointerdown", (event) => {
       if (!document.body.classList.contains("portfolio-live")) return;
       if (event.button !== 0) return;
@@ -330,23 +416,32 @@ if (!prefersReducedMotion && finePointer) {
 
       const ball = document.createElement("span");
       ball.className = "pet-ball";
+      const endX = Math.max(36, Math.min(window.innerWidth - 36, event.clientX));
       ball.style.setProperty("--ball-start-x", `${event.clientX}px`);
       ball.style.setProperty("--ball-start-y", `${event.clientY}px`);
-      ball.style.setProperty("--ball-end-x", `${Math.max(36, Math.min(window.innerWidth - 36, event.clientX))}px`);
+      ball.style.setProperty("--ball-end-x", `${endX}px`);
       playground.appendChild(ball);
 
       if (hint) hint.classList.add("hidden");
 
-      const dogTarget = Math.max(24, Math.min(window.innerWidth - 76, event.clientX - 28));
-      dog?.classList.add("chasing");
+      const dogTarget = Math.max(24, Math.min(window.innerWidth - 76, endX - 28));
+      dog?.classList.add("chasing", "excited");
       dog?.style.setProperty("--dog-chase-x", `${dogTarget}px`);
 
       window.setTimeout(() => {
-        dog?.classList.remove("chasing");
-        dog?.style.removeProperty("--dog-chase-x");
-      }, 1250);
+        cat?.classList.add("pounce");
+        showEmote(cat, "!");
+      }, 280);
 
-      window.setTimeout(() => ball.remove(), 1300);
+      window.setTimeout(() => spawnSparkBurst(endX, window.innerHeight - 34, 9), 790);
+
+      window.setTimeout(() => {
+        dog?.classList.remove("chasing", "excited");
+        dog?.style.removeProperty("--dog-chase-x");
+        cat?.classList.remove("pounce");
+      }, 1320);
+
+      window.setTimeout(() => ball.remove(), 1380);
     });
   }
 })();
