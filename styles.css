@@ -808,10 +808,13 @@ main,
 
 /* Custom cursor is desktop-only so touch devices keep native behavior. */
 @media (pointer: fine) and (hover: hover) {
-  body.cursor-enabled,
+  body.cursor-enabled {
+    cursor: default;
+  }
+
   body.cursor-enabled a,
   body.cursor-enabled button {
-    cursor: none;
+    cursor: pointer;
   }
 
   .cursor-dot,
@@ -1381,5 +1384,26 @@ body.portfolio-live .stat-card:hover {
   }
   .entry-screen {
     transition: none;
+  }
+}
+
+
+/* Cursor reliability fallback */
+.entry-screen,
+.entry-console {
+  cursor: default !important;
+}
+
+.entry-screen button,
+.entry-screen .game-button,
+.entry-screen .puzzle-tiles button,
+.entry-screen .puzzle-skip {
+  cursor: pointer !important;
+}
+
+@media (pointer: fine) and (hover: hover) {
+  .cursor-dot,
+  .cursor-ring {
+    mix-blend-mode: normal;
   }
 }
