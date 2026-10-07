@@ -1932,3 +1932,296 @@ body.portfolio-live .pet-playground {
   from { transform: translateX(-50%) scale(.82); opacity: .28; }
   to { transform: translateX(-50%) scale(1.12); opacity: .78; }
 }
+
+
+/* Companion chooser + cursor car mode */
+.companion-step[hidden] {
+  display: none;
+}
+
+.companion-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+}
+
+.companion-card {
+  position: relative;
+  min-height: 148px;
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  align-items: center;
+  gap: 14px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid rgba(115,167,255,.24);
+  border-radius: 18px;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(115,167,255,.11), transparent 44%),
+    rgba(255,255,255,.028);
+  text-align: left;
+  font: inherit;
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.companion-card::after {
+  content: "";
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  right: -70px;
+  bottom: -90px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(142,230,207,.17), transparent 68%);
+  transition: transform 300ms ease;
+}
+
+.companion-card:hover,
+.companion-card:focus-visible {
+  transform: translateY(-5px) scale(1.015);
+  border-color: rgba(142,230,207,.72);
+  background:
+    radial-gradient(circle at 18% 20%, rgba(115,167,255,.16), transparent 44%),
+    rgba(255,255,255,.045);
+  box-shadow: 0 20px 46px rgba(0,0,0,.24), inset 0 0 26px rgba(115,167,255,.035);
+  outline: none;
+}
+
+.companion-card:hover::after,
+.companion-card:focus-visible::after {
+  transform: scale(1.25);
+}
+
+.companion-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid rgba(142,230,207,.18);
+  border-radius: 16px;
+  background: rgba(8,17,31,.56);
+  font-size: 1.65rem;
+  filter: drop-shadow(0 5px 10px rgba(0,0,0,.22));
+}
+
+.companion-card strong,
+.companion-card small {
+  display: block;
+}
+
+.companion-card strong {
+  margin-bottom: 7px;
+  font-size: 1.04rem;
+}
+
+.companion-card small {
+  color: var(--muted);
+  font-size: .78rem;
+  line-height: 1.45;
+}
+
+body.experience-car .pet-playground {
+  display: none !important;
+}
+
+body.experience-pets .car-playground {
+  display: none !important;
+}
+
+.car-playground {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 87;
+  height: 78px;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 420ms ease, transform 420ms ease;
+}
+
+body.portfolio-live.experience-car .car-playground {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.car-road {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28px;
+  border-top: 1px solid rgba(115,167,255,.15);
+  background:
+    linear-gradient(90deg, transparent 0 6%, rgba(155,192,255,.18) 6% 9%, transparent 9% 16%) 0 12px / 120px 2px repeat-x,
+    linear-gradient(180deg, rgba(8,17,31,.08), rgba(5,11,20,.7));
+}
+
+.car-playground.driving .car-road {
+  animation: roadMove .62s linear infinite;
+}
+
+.car-machine {
+  position: absolute;
+  left: 0;
+  bottom: 17px;
+  width: 92px;
+  height: 36px;
+  will-change: transform;
+  transform: translate3d(24px,0,0);
+  filter: drop-shadow(0 8px 8px rgba(0,0,0,.3));
+}
+
+.car-shell {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  width: 72px;
+  height: 22px;
+  border: 1px solid rgba(155,192,255,.7);
+  border-radius: 15px 22px 8px 8px;
+  background: linear-gradient(135deg, #5c8cff, #8ee6cf 62%, #d9f7ef);
+  box-shadow: 0 0 20px rgba(115,167,255,.24);
+}
+
+.car-shell::before {
+  content: "";
+  position: absolute;
+  left: 23px;
+  top: -10px;
+  width: 31px;
+  height: 14px;
+  border: 1px solid rgba(155,192,255,.5);
+  border-bottom: 0;
+  border-radius: 12px 14px 0 0;
+  background: linear-gradient(135deg, rgba(8,17,31,.94), rgba(115,167,255,.28));
+  transform: skewX(-16deg);
+}
+
+.car-light {
+  position: absolute;
+  right: 2px;
+  top: 8px;
+  width: 7px;
+  height: 5px;
+  border-radius: 999px;
+  background: #e9fff8;
+  box-shadow: 10px 0 18px 5px rgba(142,230,207,.26);
+}
+
+.car-wheel {
+  position: absolute;
+  bottom: 3px;
+  width: 16px;
+  height: 16px;
+  border: 3px solid #07101c;
+  border-radius: 50%;
+  background: radial-gradient(circle, #8fa3bd 0 22%, #1a2738 24% 48%, #02060b 50%);
+  box-shadow: 0 0 0 1px rgba(255,255,255,.08);
+}
+
+.car-wheel.front { right: 11px; }
+.car-wheel.back { left: 15px; }
+
+.car-playground.driving .car-wheel {
+  animation: wheelSpin .35s linear infinite;
+}
+
+.car-playground.boosting .car-wheel {
+  animation-duration: .14s;
+}
+
+.car-exhaust {
+  position: absolute;
+  left: -3px;
+  bottom: 12px;
+  width: 20px;
+  height: 8px;
+  opacity: .2;
+  background: linear-gradient(90deg, transparent, rgba(115,167,255,.68), rgba(142,230,207,.9));
+  filter: blur(2px);
+  transform: scaleX(.4);
+  transform-origin: right;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.car-playground.boosting .car-exhaust {
+  opacity: 1;
+  transform: scaleX(2.4);
+}
+
+.car-hint {
+  position: absolute;
+  left: 18px;
+  bottom: 48px;
+  padding: 4px 8px;
+  border: 1px solid rgba(142,230,207,.18);
+  border-radius: 999px;
+  color: #7f91a8;
+  background: rgba(8,17,31,.72);
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  transition: opacity 220ms ease;
+}
+
+.car-hint.hidden {
+  opacity: 0;
+}
+
+.car-speed-line {
+  position: fixed;
+  z-index: 50004;
+  height: 1px;
+  width: 70px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(142,230,207,.8));
+  transform-origin: right;
+  animation: carSpeedLine .58s ease-out forwards;
+}
+
+.car-finish {
+  position: absolute;
+  right: 24px;
+  bottom: 31px;
+  color: var(--accent-2);
+  font-size: .62rem;
+  font-weight: 900;
+  letter-spacing: .12em;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 260ms ease, transform 260ms ease;
+}
+
+.car-playground.near-finish .car-finish {
+  opacity: .82;
+  transform: translateY(0);
+}
+
+@keyframes roadMove {
+  to { background-position: -120px 12px, 0 0; }
+}
+
+@keyframes wheelSpin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes carSpeedLine {
+  from { opacity: .75; transform: translateX(0) scaleX(1); }
+  to { opacity: 0; transform: translateX(-70px) scaleX(.25); }
+}
+
+@media (max-width: 760px) {
+  .companion-grid { grid-template-columns: 1fr; }
+  .companion-card { min-height: 118px; }
+  .car-playground { display: none !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .car-playground { display: none !important; }
+}
