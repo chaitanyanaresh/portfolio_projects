@@ -9,7 +9,7 @@
   <meta property="og:description" content="Full-stack engineering across React, TypeScript, Node.js, APIs, PostgreSQL, AWS, distributed systems, and AI-assisted development." />
   <meta property="og:type" content="website" />
   <title>Chaitanya Naresh Arroju | Full-Stack Software Engineer</title>
-  <link rel="stylesheet" href="styles.css?v=20261007-5" />
+  <link rel="stylesheet" href="styles.css?v=20261007-8" />
   <noscript><style>.entry-screen,.game-hud{display:none!important}body{overflow:auto!important}</style></noscript>
 </head>
 <body class="game-locked">
@@ -30,6 +30,31 @@
           <button class="game-button ghost" id="skip-intro" type="button">No — enter full portfolio</button>
         </div>
         <p class="entry-note">No typing, no quiz, no blocker. Your choice only personalizes where the portfolio starts.</p>
+      </div>
+
+      <div id="companion-panel" class="entry-step companion-step" hidden>
+        <p class="console-label">CHOOSE YOUR EXPERIENCE</p>
+        <h2>Which one do you like?</h2>
+        <p class="entry-copy">Pick the interactive style you want while exploring the portfolio. You can choose a cursor-driven car or playful pets.</p>
+
+        <div class="companion-grid" id="companion-grid">
+          <button class="companion-card companion-car" type="button" data-mode="car">
+            <span class="companion-icon" aria-hidden="true">🏎️</span>
+            <span>
+              <strong>Car mode</strong>
+              <small>Move the cursor to steer. Click for a neon boost.</small>
+            </span>
+          </button>
+          <button class="companion-card companion-pets" type="button" data-mode="pets">
+            <span class="companion-icon" aria-hidden="true">🐕 🐈</span>
+            <span>
+              <strong>Pet mode</strong>
+              <small>Walk with the dog and cat. Aim and toss the ball from the cursor.</small>
+            </span>
+          </button>
+        </div>
+
+        <button class="puzzle-skip" id="companion-skip" type="button">Surprise me</button>
       </div>
 
       <div id="mission-panel" class="entry-step mission-step" hidden>
@@ -386,6 +411,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=20261007-5"></script>
+  <script src="script.js?v=20261007-8"></script>
 </body>
 </html>
