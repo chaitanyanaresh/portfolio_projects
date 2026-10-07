@@ -1712,19 +1712,19 @@ body.portfolio-live .pet-playground {
 
 @keyframes ballThrow {
   0% {
-    transform: translate3d(var(--ball-start-x), var(--ball-start-y), 0) translate(-50%, -50%) scale(.65);
+    transform: translate3d(var(--ball-start-x), var(--ball-start-y), 0) translate(-50%, -50%) scale(.62) rotate(0deg);
     opacity: 1;
   }
-  45% {
-    transform: translate3d(var(--ball-end-x), calc(100vh - 105px), 0) translate(-50%, -50%) scale(1.05);
+  46% {
+    transform: translate3d(var(--ball-mid-x), var(--ball-mid-y), 0) translate(-50%, -50%) scale(1.08) rotate(250deg);
     opacity: 1;
   }
-  72% {
-    transform: translate3d(var(--ball-end-x), calc(100vh - 42px), 0) translate(-50%, -50%) scale(.92);
+  82% {
+    transform: translate3d(var(--ball-end-x), var(--ball-end-y), 0) translate(-50%, -50%) scale(.9) rotate(610deg);
     opacity: 1;
   }
   100% {
-    transform: translate3d(var(--ball-end-x), calc(100vh - 34px), 0) translate(-50%, -50%) scale(.7);
+    transform: translate3d(var(--ball-end-x), var(--ball-end-y), 0) translate(-50%, -50%) scale(.35) rotate(720deg);
     opacity: 0;
   }
 }
@@ -1900,4 +1900,35 @@ body.portfolio-live .pet-playground {
   .site-footer::before {
     display: none !important;
   }
+}
+
+
+/* Cursor-to-pet ball targeting */
+.pet.targeted .pet-body {
+  filter: drop-shadow(0 0 9px rgba(142,230,207,.85));
+  animation-duration: .3s;
+}
+
+.pet.targeted::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 42px;
+  height: 12px;
+  border: 1px solid rgba(142,230,207,.48);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  opacity: .72;
+  box-shadow: 0 0 16px rgba(142,230,207,.18);
+  animation: petTargetPulse .8s ease-in-out infinite alternate;
+}
+
+.pet-ball {
+  transform-origin: center;
+}
+
+@keyframes petTargetPulse {
+  from { transform: translateX(-50%) scale(.82); opacity: .28; }
+  to { transform: translateX(-50%) scale(1.12); opacity: .78; }
 }
