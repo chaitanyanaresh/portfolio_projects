@@ -1508,3 +1508,237 @@ body.cursor-enabled button {
     min-height: 108px;
   }
 }
+
+
+/* Single custom cursor + playful pet layer */
+@media (pointer: fine) and (hover: hover) {
+  body.cursor-custom-ready,
+  body.cursor-custom-ready *,
+  body.cursor-custom-ready .entry-screen,
+  body.cursor-custom-ready .entry-console,
+  body.cursor-custom-ready .entry-screen button,
+  body.cursor-custom-ready .entry-screen .game-button,
+  body.cursor-custom-ready .entry-screen .mission-card,
+  body.cursor-custom-ready .entry-screen .puzzle-skip {
+    cursor: none !important;
+  }
+
+  .cursor-dot,
+  .cursor-ring {
+    display: block !important;
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 50010;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    will-change: transform;
+    mix-blend-mode: normal;
+  }
+
+  .cursor-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--accent-2);
+    box-shadow: 0 0 14px rgba(142, 230, 207, 0.95);
+    transition: opacity 120ms ease, width 160ms ease, height 160ms ease, background 160ms ease;
+  }
+
+  .cursor-ring {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(155, 192, 255, 0.9);
+    background: rgba(115, 167, 255, 0.04);
+    box-shadow: 0 0 28px rgba(115, 167, 255, 0.18), inset 0 0 16px rgba(115, 167, 255, 0.04);
+    transition: opacity 120ms ease, width 170ms ease, height 170ms ease, border-color 170ms ease, background 170ms ease;
+  }
+
+  body.cursor-active .cursor-dot,
+  body.cursor-active .cursor-ring {
+    opacity: 1;
+  }
+
+  body.cursor-hover .cursor-ring {
+    width: 54px;
+    height: 54px;
+    border-color: rgba(142, 230, 207, 0.92);
+    background: rgba(142, 230, 207, 0.075);
+  }
+
+  body.cursor-hover .cursor-dot {
+    width: 10px;
+    height: 10px;
+    background: #f4f7fb;
+  }
+
+  body.cursor-pressed .cursor-ring {
+    width: 27px;
+    height: 27px;
+    border-color: var(--accent-2);
+  }
+}
+
+.pet-playground {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 66px;
+  z-index: 86;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 420ms ease, transform 420ms ease;
+  overflow: hidden;
+}
+
+body.portfolio-live .pet-playground {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pet-lane {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(115,167,255,.13) 12%, rgba(142,230,207,.18) 50%, rgba(115,167,255,.13) 88%, transparent);
+}
+
+.pet {
+  position: absolute;
+  bottom: 7px;
+  left: 0;
+  font-size: 28px;
+  line-height: 1;
+  filter: drop-shadow(0 5px 8px rgba(0,0,0,.25));
+  transform-origin: center bottom;
+  will-change: transform, left;
+}
+
+.pet-body {
+  display: block;
+  animation: petStep .48s ease-in-out infinite alternate;
+}
+
+.pet-dog {
+  animation: dogPatrol 15s linear infinite alternate;
+}
+
+.pet-cat {
+  animation: catPatrol 21s linear infinite alternate-reverse;
+  opacity: .9;
+}
+
+.pet-dog.chasing {
+  animation: none !important;
+  left: var(--dog-chase-x) !important;
+  transition: left 620ms cubic-bezier(.2,.8,.2,1);
+}
+
+.pet-hint {
+  position: absolute;
+  left: 18px;
+  bottom: 39px;
+  padding: 4px 8px;
+  border: 1px solid rgba(142,230,207,.18);
+  border-radius: 999px;
+  color: #7f91a8;
+  background: rgba(8,17,31,.72);
+  font-size: .58rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  opacity: .65;
+  transition: opacity 220ms ease;
+}
+
+.pet-hint.hidden,
+.pet-playground.near-finish .pet-hint {
+  opacity: 0;
+}
+
+.pet-playground.near-finish .pet-dog,
+.pet-playground.near-finish .pet-cat {
+  animation-play-state: paused;
+}
+
+.pet-playground.near-finish .pet-body {
+  animation: petSit 700ms ease forwards;
+}
+
+.pet-ball {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 50005;
+  background: radial-gradient(circle at 35% 30%, #fff 0 12%, var(--accent-2) 22% 55%, #4f86ff 100%);
+  box-shadow: 0 0 18px rgba(142,230,207,.85);
+  animation: ballThrow 1.18s cubic-bezier(.2,.72,.25,1) forwards;
+}
+
+@keyframes petStep {
+  from { transform: translateY(0) rotate(-1deg); }
+  to { transform: translateY(-3px) rotate(1deg); }
+}
+
+@keyframes petSit {
+  to { transform: translateY(2px) scale(.96); }
+}
+
+@keyframes dogPatrol {
+  0% { left: 3vw; transform: scaleX(1); }
+  48% { transform: scaleX(1); }
+  50% { left: calc(100vw - 72px); transform: scaleX(1); }
+  52% { transform: scaleX(-1); }
+  98% { transform: scaleX(-1); }
+  100% { left: 3vw; transform: scaleX(-1); }
+}
+
+@keyframes catPatrol {
+  0% { left: 18vw; transform: scaleX(1); }
+  48% { transform: scaleX(1); }
+  50% { left: calc(100vw - 112px); transform: scaleX(1); }
+  52% { transform: scaleX(-1); }
+  98% { transform: scaleX(-1); }
+  100% { left: 18vw; transform: scaleX(-1); }
+}
+
+@keyframes ballThrow {
+  0% {
+    transform: translate3d(var(--ball-start-x), var(--ball-start-y), 0) translate(-50%, -50%) scale(.65);
+    opacity: 1;
+  }
+  45% {
+    transform: translate3d(var(--ball-end-x), calc(100vh - 105px), 0) translate(-50%, -50%) scale(1.05);
+    opacity: 1;
+  }
+  72% {
+    transform: translate3d(var(--ball-end-x), calc(100vh - 42px), 0) translate(-50%, -50%) scale(.92);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--ball-end-x), calc(100vh - 34px), 0) translate(-50%, -50%) scale(.7);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 760px), (pointer: coarse) {
+  .pet-playground {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pet-playground,
+  .cursor-dot,
+  .cursor-ring {
+    display: none !important;
+  }
+}

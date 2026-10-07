@@ -177,31 +177,72 @@ updateProgress();
 window.addEventListener("scroll", updateProgress, { passive: true });
 window.addEventListener("resize", updateProgress);
 
-/* Pointer-following ambient light — native cursor stays the single visible cursor */
+/* Single custom cursor: outer ring + inner dot */
 if (!prefersReducedMotion && finePointer) {
   const aura = document.createElement("div");
   aura.className = "mouse-aura";
   aura.setAttribute("aria-hidden", "true");
-  document.body.appendChild(aura);
+
+  const cursorRing = document.createElement("div");
+  cursorRing.className = "cursor-ring";
+  cursorRing.setAttribute("aria-hidden", "true");
+
+  const cursorDot = document.createElement("div");
+  cursorDot.className = "cursor-dot";
+  cursorDot.setAttribute("aria-hidden", "true");
+
+  document.body.append(aura, cursorRing, cursorDot);
+  document.body.classList.add("cursor-custom-ready");
 
   let mouseX = window.innerWidth / 2;
   let mouseY = window.innerHeight / 2;
+  let ringX = mouseX;
+  let ringY = mouseY;
   let auraX = mouseX;
   let auraY = mouseY;
 
-  const animateAura = () => {
+  const animateCursor = () => {
+    ringX += (mouseX - ringX) * 0.22;
+    ringY += (mouseY - ringY) * 0.22;
     auraX += (mouseX - auraX) * 0.075;
     auraY += (mouseY - auraY) * 0.075;
+
+    cursorDot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
+    cursorRing.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
     aura.style.transform = `translate3d(${auraX}px, ${auraY}px, 0) translate(-50%, -50%)`;
-    requestAnimationFrame(animateAura);
+
+    requestAnimationFrame(animateCursor);
   };
 
   window.addEventListener("mousemove", (event) => {
     mouseX = event.clientX;
     mouseY = event.clientY;
+    document.body.classList.add("cursor-active");
   }, { passive: true });
 
-  animateAura();
+  document.documentElement.addEventListener("mouseleave", () => {
+    document.body.classList.remove("cursor-active");
+  });
+
+  document.documentElement.addEventListener("mouseenter", () => {
+    document.body.classList.add("cursor-active");
+  });
+
+  document.addEventListener("pointerdown", () => {
+    document.body.classList.add("cursor-pressed");
+  });
+
+  document.addEventListener("pointerup", () => {
+    document.body.classList.remove("cursor-pressed");
+  });
+
+  const interactiveSelector = "a, button, .project-card, .skill-card, .principle-card, .stat-card, .principle-list article, .mission-card";
+  document.querySelectorAll(interactiveSelector).forEach((element) => {
+    element.addEventListener("mouseenter", () => document.body.classList.add("cursor-hover"));
+    element.addEventListener("mouseleave", () => document.body.classList.remove("cursor-hover"));
+  });
+
+  animateCursor();
 }
 
 /* Soft 3D tilt + cursor-position glow for cards */
@@ -248,3 +289,64 @@ if (!prefersReducedMotion && finePointer) {
     });
   });
 }
+
+
+/* Portfolio pet playground */
+(() => {
+  const playground = document.createElement("div");
+  playground.className = "pet-playground";
+  playground.setAttribute("aria-hidden", "true");
+  playground.innerHTML = `
+    <div class="pet-lane"></div>
+    <div class="pet pet-dog" id="pet-dog"><span class="pet-body">🐕</span></div>
+    <div class="pet pet-cat" id="pet-cat"><span class="pet-body">🐈</span></div>
+    <div class="pet-hint">click to toss the ball</div>
+  `;
+  document.body.appendChild(playground);
+
+  const dog = playground.querySelector("#pet-dog");
+  const cat = playground.querySelector("#pet-cat");
+  const hint = playground.querySelector(".pet-hint");
+  let lastBallTime = 0;
+
+  const updatePetState = () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const ratio = max > 0 ? window.scrollY / max : 0;
+    playground.classList.toggle("near-finish", ratio > 0.965);
+  };
+
+  updatePetState();
+  window.addEventListener("scroll", updatePetState, { passive: true });
+  window.addEventListener("resize", updatePetState);
+
+  if (!prefersReducedMotion && finePointer) {
+    document.addEventListener("pointerdown", (event) => {
+      if (!document.body.classList.contains("portfolio-live")) return;
+      if (event.button !== 0) return;
+
+      const now = performance.now();
+      if (now - lastBallTime < 650) return;
+      lastBallTime = now;
+
+      const ball = document.createElement("span");
+      ball.className = "pet-ball";
+      ball.style.setProperty("--ball-start-x", `${event.clientX}px`);
+      ball.style.setProperty("--ball-start-y", `${event.clientY}px`);
+      ball.style.setProperty("--ball-end-x", `${Math.max(36, Math.min(window.innerWidth - 36, event.clientX))}px`);
+      playground.appendChild(ball);
+
+      if (hint) hint.classList.add("hidden");
+
+      const dogTarget = Math.max(24, Math.min(window.innerWidth - 76, event.clientX - 28));
+      dog?.classList.add("chasing");
+      dog?.style.setProperty("--dog-chase-x", `${dogTarget}px`);
+
+      window.setTimeout(() => {
+        dog?.classList.remove("chasing");
+        dog?.style.removeProperty("--dog-chase-x");
+      }, 1250);
+
+      window.setTimeout(() => ball.remove(), 1300);
+    });
+  }
+})();
