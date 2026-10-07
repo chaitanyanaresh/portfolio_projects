@@ -300,7 +300,7 @@ if (!prefersReducedMotion && finePointer) {
     <div class="pet-lane"></div>
     <div class="pet pet-dog" id="pet-dog"><span class="pet-body">🐕</span></div>
     <div class="pet pet-cat" id="pet-cat"><span class="pet-body">🐈</span></div>
-    <div class="pet-hint">click anywhere to toss the ball</div>
+    <div class="pet-hint">move near a pet and click to shoot the ball</div>
   `;
   document.body.appendChild(playground);
 
@@ -406,6 +406,36 @@ if (!prefersReducedMotion && finePointer) {
 
     window.setInterval(runIdleAction, 5200);
 
+    let targetPet = dog;
+
+    const chooseTargetPet = (x, y) => {
+      const pets = [dog, cat].filter(Boolean);
+      if (!pets.length) return null;
+      let nearest = pets[0];
+      let nearestDistance = Infinity;
+      pets.forEach((pet) => {
+        const rect = pet.getBoundingClientRect();
+        const px = rect.left + rect.width / 2;
+        const py = rect.top + rect.height / 2;
+        const distance = Math.hypot(x - px, y - py);
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          nearest = pet;
+        }
+      });
+      return nearest;
+    };
+
+    window.addEventListener("mousemove", (event) => {
+      if (!document.body.classList.contains("portfolio-live")) return;
+      const nextTarget = chooseTargetPet(event.clientX, event.clientY);
+      if (nextTarget !== targetPet) {
+        targetPet?.classList.remove("targeted");
+        targetPet = nextTarget;
+      }
+      targetPet?.classList.add("targeted");
+    }, { passive: true });
+
     document.addEventListener("pointerdown", (event) => {
       if (!document.body.classList.contains("portfolio-live")) return;
       if (event.button !== 0) return;
@@ -414,34 +444,44 @@ if (!prefersReducedMotion && finePointer) {
       if (now - lastBallTime < 650) return;
       lastBallTime = now;
 
+      const selectedPet = chooseTargetPet(event.clientX, event.clientY);
+      if (!selectedPet) return;
+
+      const petRect = selectedPet.getBoundingClientRect();
+      const endX = petRect.left + petRect.width / 2;
+      const endY = petRect.top + petRect.height / 2;
+      const midX = event.clientX + (endX - event.clientX) * 0.52;
+      const midY = Math.min(event.clientY, endY) - Math.max(58, Math.abs(endY - event.clientY) * 0.18);
+
       const ball = document.createElement("span");
       ball.className = "pet-ball";
-      const endX = Math.max(36, Math.min(window.innerWidth - 36, event.clientX));
       ball.style.setProperty("--ball-start-x", `${event.clientX}px`);
       ball.style.setProperty("--ball-start-y", `${event.clientY}px`);
+      ball.style.setProperty("--ball-mid-x", `${midX}px`);
+      ball.style.setProperty("--ball-mid-y", `${midY}px`);
       ball.style.setProperty("--ball-end-x", `${endX}px`);
+      ball.style.setProperty("--ball-end-y", `${endY}px`);
       playground.appendChild(ball);
 
       if (hint) hint.classList.add("hidden");
 
-      const dogTarget = Math.max(24, Math.min(window.innerWidth - 76, endX - 28));
-      dog?.classList.add("chasing", "excited");
-      dog?.style.setProperty("--dog-chase-x", `${dogTarget}px`);
-
-      window.setTimeout(() => {
+      selectedPet.classList.add("targeted");
+      if (selectedPet === dog) {
+        dog?.classList.add("excited");
+        showEmote(dog, "⚡");
+      } else {
         cat?.classList.add("pounce");
-        showEmote(cat, "!");
-      }, 280);
+        showEmote(cat, "⚡");
+      }
 
-      window.setTimeout(() => spawnSparkBurst(endX, window.innerHeight - 34, 9), 790);
+      window.setTimeout(() => spawnSparkBurst(endX, endY, 10), 760);
 
       window.setTimeout(() => {
-        dog?.classList.remove("chasing", "excited");
-        dog?.style.removeProperty("--dog-chase-x");
+        dog?.classList.remove("excited");
         cat?.classList.remove("pounce");
-      }, 1320);
+      }, 1100);
 
-      window.setTimeout(() => ball.remove(), 1380);
+      window.setTimeout(() => ball.remove(), 1250);
     });
   }
 })();
