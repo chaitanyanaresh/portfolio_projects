@@ -10,11 +10,26 @@ const finePointer = window.matchMedia("(pointer: fine) and (hover: hover)").matc
 /* Portfolio game entry */
 const entryScreen = document.getElementById("entry-screen");
 const entryPrompt = document.getElementById("entry-prompt");
+const companionPanel = document.getElementById("companion-panel");
+const companionSkip = document.getElementById("companion-skip");
+const companionCards = [...document.querySelectorAll(".companion-card")];
 const missionPanel = document.getElementById("mission-panel");
 const playIntro = document.getElementById("play-intro");
 const skipIntro = document.getElementById("skip-intro");
 const missionSkip = document.getElementById("mission-skip");
 const missionCards = [...document.querySelectorAll(".mission-card")];
+
+const applyCompanionMode = (mode = "pets") => {
+  const normalized = mode === "car" ? "car" : "pets";
+  document.body.classList.toggle("experience-car", normalized === "car");
+  document.body.classList.toggle("experience-pets", normalized === "pets");
+  try { sessionStorage.setItem("cnaCompanionMode", normalized); } catch (_) {}
+  return normalized;
+};
+
+let savedCompanionMode = "pets";
+try { savedCompanionMode = sessionStorage.getItem("cnaCompanionMode") || "pets"; } catch (_) {}
+applyCompanionMode(savedCompanionMode);
 
 const setPortfolioLive = () => {
   document.body.classList.remove("game-locked");
@@ -34,7 +49,7 @@ const showAccessToast = (message = "ACCESS GRANTED // WELCOME") => {
 };
 
 const unlockPortfolio = (message, targetId = "") => {
-  try { sessionStorage.setItem("cnaPortfolioUnlockedV2", "1"); } catch (_) {}
+  try { sessionStorage.setItem("cnaPortfolioUnlockedV3", "1"); } catch (_) {}
   setPortfolioLive();
 
   if (entryScreen) {
@@ -55,7 +70,7 @@ const unlockPortfolio = (message, targetId = "") => {
 };
 
 let alreadyUnlocked = false;
-try { alreadyUnlocked = sessionStorage.getItem("cnaPortfolioUnlockedV2") === "1"; } catch (_) {}
+try { alreadyUnlocked = sessionStorage.getItem("cnaPortfolioUnlockedV3") === "1"; } catch (_) {}
 if (alreadyUnlocked) {
   if (entryScreen) entryScreen.hidden = true;
   setPortfolioLive();
@@ -64,13 +79,34 @@ if (alreadyUnlocked) {
 if (playIntro) {
   playIntro.addEventListener("click", () => {
     if (entryPrompt) entryPrompt.hidden = true;
+    if (companionPanel) companionPanel.hidden = false;
+    companionCards[0]?.focus();
+  });
+}
+
+companionCards.forEach((card) => {
+  card.addEventListener("click", () => {
+    applyCompanionMode(card.dataset.mode || "pets");
+    if (companionPanel) companionPanel.hidden = true;
+    if (missionPanel) missionPanel.hidden = false;
+    missionCards[0]?.focus();
+  });
+});
+
+if (companionSkip) {
+  companionSkip.addEventListener("click", () => {
+    applyCompanionMode("pets");
+    if (companionPanel) companionPanel.hidden = true;
     if (missionPanel) missionPanel.hidden = false;
     missionCards[0]?.focus();
   });
 }
 
 if (skipIntro) {
-  skipIntro.addEventListener("click", () => unlockPortfolio("PORTFOLIO UNLOCKED // FULL ACCESS"));
+  skipIntro.addEventListener("click", () => {
+    applyCompanionMode(savedCompanionMode || "pets");
+    unlockPortfolio("PORTFOLIO UNLOCKED // FULL ACCESS");
+  });
 }
 
 if (missionSkip) {
@@ -314,7 +350,7 @@ if (!prefersReducedMotion && finePointer) {
   let scrollTimer = 0;
 
   const spawnPaw = (pet, rotate = 0) => {
-    if (!pet || !document.body.classList.contains("portfolio-live")) return;
+    if (!pet || !document.body.classList.contains("portfolio-live") || !document.body.classList.contains("experience-pets")) return;
     const rect = pet.getBoundingClientRect();
     const paw = document.createElement("span");
     paw.className = "pet-paw";
@@ -392,7 +428,7 @@ if (!prefersReducedMotion && finePointer) {
 
   if (!prefersReducedMotion && finePointer) {
     const runIdleAction = () => {
-      if (!document.body.classList.contains("portfolio-live") || nearFinish) return;
+      if (!document.body.classList.contains("portfolio-live") || !document.body.classList.contains("experience-pets") || nearFinish) return;
       if (Math.random() > .5) {
         dog?.classList.add("excited");
         showEmote(dog, "!");
@@ -427,7 +463,7 @@ if (!prefersReducedMotion && finePointer) {
     };
 
     window.addEventListener("mousemove", (event) => {
-      if (!document.body.classList.contains("portfolio-live")) return;
+      if (!document.body.classList.contains("portfolio-live") || !document.body.classList.contains("experience-pets")) return;
       const nextTarget = chooseTargetPet(event.clientX, event.clientY);
       if (nextTarget !== targetPet) {
         targetPet?.classList.remove("targeted");
@@ -437,7 +473,7 @@ if (!prefersReducedMotion && finePointer) {
     }, { passive: true });
 
     document.addEventListener("pointerdown", (event) => {
-      if (!document.body.classList.contains("portfolio-live")) return;
+      if (!document.body.classList.contains("portfolio-live") || !document.body.classList.contains("experience-pets")) return;
       if (event.button !== 0) return;
 
       const now = performance.now();
@@ -483,5 +519,103 @@ if (!prefersReducedMotion && finePointer) {
 
       window.setTimeout(() => ball.remove(), 1250);
     });
+  }
+})();
+
+
+/* Cursor-driven car playground */
+(() => {
+  const carPlayground = document.createElement("div");
+  carPlayground.className = "car-playground";
+  carPlayground.setAttribute("aria-hidden", "true");
+  carPlayground.innerHTML = `
+    <div class="car-road"></div>
+    <div class="car-machine" id="cursor-car">
+      <span class="car-exhaust"></span>
+      <span class="car-shell"><span class="car-light"></span></span>
+      <span class="car-wheel back"></span>
+      <span class="car-wheel front"></span>
+    </div>
+    <div class="car-hint">move cursor to steer • click to boost</div>
+    <div class="car-finish">FINISH // STILL MORE TO GO</div>
+  `;
+  document.body.appendChild(carPlayground);
+
+  const car = carPlayground.querySelector("#cursor-car");
+  const carHint = carPlayground.querySelector(".car-hint");
+  let targetX = Math.min(window.innerWidth * .35, 360);
+  let carX = targetX;
+  let lastX = targetX;
+  let lastMove = performance.now();
+  let boostTimer = 0;
+  let finishCelebrated = false;
+
+  const clampCarX = (x) => Math.max(18, Math.min(window.innerWidth - 108, x - 46));
+
+  const animateCar = () => {
+    if (document.body.classList.contains("portfolio-live") && document.body.classList.contains("experience-car") && finePointer && !prefersReducedMotion) {
+      carX += (targetX - carX) * .14;
+      if (car) car.style.transform = `translate3d(${carX}px,0,0)`;
+      const moving = Math.abs(targetX - carX) > .7 || performance.now() - lastMove < 140;
+      carPlayground.classList.toggle("driving", moving);
+    }
+    requestAnimationFrame(animateCar);
+  };
+
+  const spawnSpeedLines = () => {
+    if (!car) return;
+    const rect = car.getBoundingClientRect();
+    for (let i = 0; i < 5; i += 1) {
+      const line = document.createElement("span");
+      line.className = "car-speed-line";
+      line.style.left = `${rect.left + 8 - i * 8}px`;
+      line.style.top = `${rect.top + 15 + i * 4}px`;
+      document.body.appendChild(line);
+      window.setTimeout(() => line.remove(), 620);
+    }
+  };
+
+  const updateCarFinish = () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const ratio = max > 0 ? window.scrollY / max : 0;
+    const nearFinish = ratio > .965;
+    carPlayground.classList.toggle("near-finish", nearFinish);
+    if (nearFinish && !finishCelebrated && document.body.classList.contains("experience-car")) {
+      finishCelebrated = true;
+      carPlayground.classList.add("boosting");
+      spawnSpeedLines();
+      window.setTimeout(() => carPlayground.classList.remove("boosting"), 900);
+    }
+    if (!nearFinish && ratio < .92) finishCelebrated = false;
+  };
+
+  if (finePointer && !prefersReducedMotion) {
+    window.addEventListener("mousemove", (event) => {
+      if (!document.body.classList.contains("portfolio-live") || !document.body.classList.contains("experience-car")) return;
+      targetX = clampCarX(event.clientX);
+      lastMove = performance.now();
+      if (Math.abs(targetX - lastX) > 2) {
+        carPlayground.classList.add("driving");
+        lastX = targetX;
+      }
+    }, { passive: true });
+
+    document.addEventListener("pointerdown", (event) => {
+      if (!document.body.classList.contains("portfolio-live") || !document.body.classList.contains("experience-car")) return;
+      if (event.button !== 0) return;
+      window.clearTimeout(boostTimer);
+      carPlayground.classList.add("boosting", "driving");
+      if (carHint) carHint.classList.add("hidden");
+      spawnSpeedLines();
+      boostTimer = window.setTimeout(() => carPlayground.classList.remove("boosting"), 720);
+    });
+
+    window.addEventListener("scroll", updateCarFinish, { passive: true });
+    window.addEventListener("resize", () => {
+      targetX = clampCarX(targetX + 46);
+      updateCarFinish();
+    });
+    updateCarFinish();
+    animateCar();
   }
 })();
