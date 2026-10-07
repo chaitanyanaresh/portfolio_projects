@@ -9,7 +9,7 @@
   <meta property="og:description" content="Full-stack engineering across React, TypeScript, Node.js, APIs, PostgreSQL, AWS, distributed systems, and AI-assisted development." />
   <meta property="og:type" content="website" />
   <title>Chaitanya Naresh Arroju | Full-Stack Software Engineer</title>
-  <link rel="stylesheet" href="styles.css?v=20261007-3" />
+  <link rel="stylesheet" href="styles.css?v=20261007-4" />
   <noscript><style>.entry-screen,.game-hud{display:none!important}body{overflow:auto!important}</style></noscript>
 </head>
 <body class="game-locked">
@@ -18,38 +18,49 @@
     <div class="entry-console">
       <div class="console-topline">
         <span class="console-status"><i></i> PORTFOLIO SYSTEM ONLINE</span>
-        <span class="console-code">CNA // 01</span>
+        <span class="console-code">CNA // 02</span>
       </div>
 
       <div id="entry-prompt" class="entry-step">
         <p class="console-label">ACCESS REQUEST</p>
-        <h1 id="entry-title">Want to know more about Chaitanya?</h1>
-        <p class="entry-copy">Choose the quick challenge for a more interactive introduction, or enter the portfolio immediately.</p>
+        <h1 id="entry-title">Want to explore Chaitanya's work?</h1>
+        <p class="entry-copy">Choose a quick path based on what matters to you, or enter the full portfolio immediately.</p>
         <div class="entry-actions">
-          <button class="game-button primary" id="play-intro" type="button">Yes — start challenge</button>
-          <button class="game-button ghost" id="skip-intro" type="button">No — enter portfolio</button>
+          <button class="game-button primary" id="play-intro" type="button">Yes — choose my path</button>
+          <button class="game-button ghost" id="skip-intro" type="button">No — enter full portfolio</button>
         </div>
-        <p class="entry-note">Recruiter mode: the challenge is optional and takes only a few seconds.</p>
+        <p class="entry-note">No typing, no quiz, no blocker. Your choice only personalizes where the portfolio starts.</p>
       </div>
 
-      <div id="name-puzzle" class="entry-step puzzle-step" hidden>
-        <p class="console-label">MINI QUEST // IDENTITY UNLOCK</p>
-        <h2>Decode my first name.</h2>
-        <p class="entry-copy">Tap the scrambled letters in the correct order to spell <strong>CHAITANYA</strong>.</p>
-        <div class="puzzle-answer" id="puzzle-answer" aria-live="polite"></div>
-        <div class="puzzle-tiles" id="puzzle-tiles" aria-label="Name puzzle letter tiles">
-          <button type="button" data-letter="A">A</button>
-          <button type="button" data-letter="Y">Y</button>
-          <button type="button" data-letter="C">C</button>
-          <button type="button" data-letter="T">T</button>
-          <button type="button" data-letter="A">A</button>
-          <button type="button" data-letter="H">H</button>
-          <button type="button" data-letter="N">N</button>
-          <button type="button" data-letter="I">I</button>
-          <button type="button" data-letter="A">A</button>
+      <div id="mission-panel" class="entry-step mission-step" hidden>
+        <p class="console-label">CHOOSE YOUR MISSION</p>
+        <h2>What would you like to see first?</h2>
+        <p class="entry-copy">Pick one path and I will take you directly to the most relevant part of the portfolio.</p>
+
+        <div class="mission-grid" id="mission-grid">
+          <button class="mission-card" type="button" data-target="skills" data-label="FRONTEND">
+            <span class="mission-code">01</span>
+            <strong>Frontend & UI</strong>
+            <small>React, TypeScript, responsive experiences, performance</small>
+          </button>
+          <button class="mission-card" type="button" data-target="experience" data-label="BACKEND">
+            <span class="mission-code">02</span>
+            <strong>Backend & APIs</strong>
+            <small>Node.js, Python, APIs, data, reliability</small>
+          </button>
+          <button class="mission-card" type="button" data-target="work" data-label="FULL STACK">
+            <span class="mission-code">03</span>
+            <strong>Full Stack</strong>
+            <small>Product delivery across frontend, backend, cloud, and data</small>
+          </button>
+          <button class="mission-card" type="button" data-target="ai" data-label="AI">
+            <span class="mission-code">04</span>
+            <strong>AI & Agents</strong>
+            <small>AI-assisted engineering, bounded sub-agents, practical workflows</small>
+          </button>
         </div>
-        <p class="puzzle-message" id="puzzle-message" aria-live="polite">Sequence locked. Start with the first letter.</p>
-        <button class="puzzle-skip" id="puzzle-skip" type="button">Skip challenge and enter</button>
+
+        <button class="puzzle-skip" id="mission-skip" type="button">Show me everything instead</button>
       </div>
 
       <div class="entry-corners" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
@@ -375,6 +386,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=20261007-3"></script>
+  <script src="script.js?v=20261007-4"></script>
 </body>
 </html>

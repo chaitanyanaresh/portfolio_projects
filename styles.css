@@ -1397,6 +1397,7 @@ body.portfolio-live .stat-card:hover {
 .entry-screen button,
 .entry-screen .game-button,
 .entry-screen .puzzle-tiles button,
+.entry-screen .mission-card,
 .entry-screen .puzzle-skip {
   cursor: pointer !important;
 }
@@ -1405,5 +1406,105 @@ body.portfolio-live .stat-card:hover {
   .cursor-dot,
   .cursor-ring {
     mix-blend-mode: normal;
+  }
+}
+
+
+/* Mission selector */
+.mission-step[hidden] {
+  display: none;
+}
+
+.mission-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.mission-card {
+  position: relative;
+  min-height: 132px;
+  padding: 18px;
+  border: 1px solid rgba(115, 167, 255, 0.22);
+  border-radius: 16px;
+  color: var(--text);
+  background:
+    linear-gradient(145deg, rgba(115, 167, 255, 0.08), rgba(142, 230, 207, 0.025)),
+    rgba(255, 255, 255, 0.025);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.mission-card::after {
+  content: "";
+  position: absolute;
+  inset: auto -20% -70% 35%;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(142, 230, 207, 0.16), transparent 68%);
+  pointer-events: none;
+}
+
+.mission-card:hover,
+.mission-card:focus-visible {
+  transform: translateY(-4px);
+  border-color: rgba(142, 230, 207, 0.72);
+  background:
+    linear-gradient(145deg, rgba(115, 167, 255, 0.14), rgba(142, 230, 207, 0.06)),
+    rgba(255, 255, 255, 0.035);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.22);
+  outline: none;
+}
+
+.mission-code {
+  display: block;
+  margin-bottom: 13px;
+  color: var(--accent-2);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+}
+
+.mission-card strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 1rem;
+}
+
+.mission-card small {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.cursor-dot,
+.cursor-ring {
+  display: none !important;
+}
+
+body,
+body.cursor-enabled {
+  cursor: default;
+}
+
+a,
+button,
+body.cursor-enabled a,
+body.cursor-enabled button {
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .mission-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mission-card {
+    min-height: 108px;
   }
 }

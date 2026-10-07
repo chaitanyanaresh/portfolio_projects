@@ -10,15 +10,11 @@ const finePointer = window.matchMedia("(pointer: fine) and (hover: hover)").matc
 /* Portfolio game entry */
 const entryScreen = document.getElementById("entry-screen");
 const entryPrompt = document.getElementById("entry-prompt");
-const puzzlePanel = document.getElementById("name-puzzle");
+const missionPanel = document.getElementById("mission-panel");
 const playIntro = document.getElementById("play-intro");
 const skipIntro = document.getElementById("skip-intro");
-const puzzleSkip = document.getElementById("puzzle-skip");
-const puzzleTiles = [...document.querySelectorAll("#puzzle-tiles button")];
-const puzzleAnswer = document.getElementById("puzzle-answer");
-const puzzleMessage = document.getElementById("puzzle-message");
-const puzzleTarget = "CHAITANYA";
-let puzzleIndex = 0;
+const missionSkip = document.getElementById("mission-skip");
+const missionCards = [...document.querySelectorAll(".mission-card")];
 
 const setPortfolioLive = () => {
   document.body.classList.remove("game-locked");
@@ -37,28 +33,29 @@ const showAccessToast = (message = "ACCESS GRANTED // WELCOME") => {
   }, 1500);
 };
 
-const unlockPortfolio = (message) => {
-  try { sessionStorage.setItem("cnaPortfolioUnlocked", "1"); } catch (_) {}
+const unlockPortfolio = (message, targetId = "") => {
+  try { sessionStorage.setItem("cnaPortfolioUnlockedV2", "1"); } catch (_) {}
   setPortfolioLive();
+
   if (entryScreen) {
     entryScreen.classList.add("is-hidden");
     window.setTimeout(() => {
       entryScreen.hidden = true;
-    }, prefersReducedMotion ? 0 : 680);
+    }, prefersReducedMotion ? 0 : 560);
   }
+
   showAccessToast(message);
+
+  if (targetId) {
+    window.setTimeout(() => {
+      const target = document.getElementById(targetId);
+      if (target) target.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth", block: "start" });
+    }, prefersReducedMotion ? 20 : 650);
+  }
 };
 
-if (puzzleAnswer) {
-  puzzleTarget.split("").forEach(() => {
-    const slot = document.createElement("span");
-    slot.textContent = "·";
-    puzzleAnswer.appendChild(slot);
-  });
-}
-
 let alreadyUnlocked = false;
-try { alreadyUnlocked = sessionStorage.getItem("cnaPortfolioUnlocked") === "1"; } catch (_) {}
+try { alreadyUnlocked = sessionStorage.getItem("cnaPortfolioUnlockedV2") === "1"; } catch (_) {}
 if (alreadyUnlocked) {
   if (entryScreen) entryScreen.hidden = true;
   setPortfolioLive();
@@ -67,52 +64,24 @@ if (alreadyUnlocked) {
 if (playIntro) {
   playIntro.addEventListener("click", () => {
     if (entryPrompt) entryPrompt.hidden = true;
-    if (puzzlePanel) puzzlePanel.hidden = false;
-    const firstTile = puzzleTiles.find((tile) => tile.dataset.letter === puzzleTarget[0]);
-    if (firstTile) firstTile.focus();
+    if (missionPanel) missionPanel.hidden = false;
+    missionCards[0]?.focus();
   });
 }
 
 if (skipIntro) {
-  skipIntro.addEventListener("click", () => unlockPortfolio("PORTFOLIO UNLOCKED // DIRECT ACCESS"));
+  skipIntro.addEventListener("click", () => unlockPortfolio("PORTFOLIO UNLOCKED // FULL ACCESS"));
 }
 
-if (puzzleSkip) {
-  puzzleSkip.addEventListener("click", () => unlockPortfolio("PORTFOLIO UNLOCKED // CHALLENGE SKIPPED"));
+if (missionSkip) {
+  missionSkip.addEventListener("click", () => unlockPortfolio("PORTFOLIO UNLOCKED // FULL ACCESS"));
 }
 
-puzzleTiles.forEach((tile) => {
-  tile.addEventListener("click", () => {
-    if (tile.disabled || puzzleIndex >= puzzleTarget.length) return;
-    const letter = tile.dataset.letter || "";
-    const expected = puzzleTarget[puzzleIndex];
-
-    if (letter === expected) {
-      tile.disabled = true;
-      tile.classList.add("solved");
-      const slot = puzzleAnswer?.children[puzzleIndex];
-      if (slot) {
-        slot.textContent = letter;
-        slot.classList.add("filled");
-      }
-      puzzleIndex += 1;
-
-      if (puzzleIndex === puzzleTarget.length) {
-        if (puzzleMessage) {
-          puzzleMessage.textContent = "Identity confirmed. Access granted.";
-          puzzleMessage.classList.add("success");
-        }
-        window.setTimeout(() => unlockPortfolio("QUEST COMPLETE // ACCESS GRANTED"), prefersReducedMotion ? 0 : 700);
-      } else if (puzzleMessage) {
-        puzzleMessage.textContent = `Good. Next letter: ${puzzleIndex + 1} of ${puzzleTarget.length}.`;
-      }
-    } else {
-      tile.classList.remove("wrong");
-      void tile.offsetWidth;
-      tile.classList.add("wrong");
-      if (puzzleMessage) puzzleMessage.textContent = "Not that one yet. Try the next letter in the name.";
-      window.setTimeout(() => tile.classList.remove("wrong"), 340);
-    }
+missionCards.forEach((card) => {
+  card.addEventListener("click", () => {
+    const targetId = card.dataset.target || "work";
+    const label = card.dataset.label || "SELECTED PATH";
+    unlockPortfolio(`MISSION SELECTED // ${label}`, targetId);
   });
 });
 
@@ -208,73 +177,31 @@ updateProgress();
 window.addEventListener("scroll", updateProgress, { passive: true });
 window.addEventListener("resize", updateProgress);
 
-/* Pointer-following ambient light */
+/* Pointer-following ambient light — native cursor stays the single visible cursor */
 if (!prefersReducedMotion && finePointer) {
   const aura = document.createElement("div");
   aura.className = "mouse-aura";
   aura.setAttribute("aria-hidden", "true");
   document.body.appendChild(aura);
 
-  const cursorDot = document.createElement("div");
-  cursorDot.className = "cursor-dot";
-  cursorDot.setAttribute("aria-hidden", "true");
-
-  const cursorRing = document.createElement("div");
-  cursorRing.className = "cursor-ring";
-  cursorRing.setAttribute("aria-hidden", "true");
-
-  document.body.append(cursorRing, cursorDot);
-  document.body.classList.add("cursor-enabled");
-
   let mouseX = window.innerWidth / 2;
   let mouseY = window.innerHeight / 2;
-  let ringX = mouseX;
-  let ringY = mouseY;
   let auraX = mouseX;
   let auraY = mouseY;
 
-  const animatePointer = () => {
-    ringX += (mouseX - ringX) * 0.18;
-    ringY += (mouseY - ringY) * 0.18;
+  const animateAura = () => {
     auraX += (mouseX - auraX) * 0.075;
     auraY += (mouseY - auraY) * 0.075;
-
-    cursorDot.style.transform = `translate3d(${mouseX}px, ${mouseY}px, 0) translate(-50%, -50%)`;
-    cursorRing.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
     aura.style.transform = `translate3d(${auraX}px, ${auraY}px, 0) translate(-50%, -50%)`;
-
-    requestAnimationFrame(animatePointer);
+    requestAnimationFrame(animateAura);
   };
 
   window.addEventListener("mousemove", (event) => {
     mouseX = event.clientX;
     mouseY = event.clientY;
-    document.body.classList.add("cursor-active");
   }, { passive: true });
 
-  document.documentElement.addEventListener("mouseleave", () => {
-    document.body.classList.remove("cursor-active");
-  });
-
-  document.documentElement.addEventListener("mouseenter", () => {
-    document.body.classList.add("cursor-active");
-  });
-
-  document.addEventListener("mousedown", () => {
-    document.body.classList.add("cursor-pressed");
-  });
-
-  document.addEventListener("mouseup", () => {
-    document.body.classList.remove("cursor-pressed");
-  });
-
-  const interactiveSelector = "a, button, .project-card, .skill-card, .principle-card, .stat-card, .principle-list article";
-  document.querySelectorAll(interactiveSelector).forEach((element) => {
-    element.addEventListener("mouseenter", () => document.body.classList.add("cursor-hover"));
-    element.addEventListener("mouseleave", () => document.body.classList.remove("cursor-hover"));
-  });
-
-  animatePointer();
+  animateAura();
 }
 
 /* Soft 3D tilt + cursor-position glow for cards */
