@@ -819,7 +819,7 @@ main,
     position: fixed;
     left: 0;
     top: 0;
-    z-index: 9999;
+    z-index: 20050;
     border-radius: 50%;
     pointer-events: none;
     opacity: 0;
@@ -1303,7 +1303,7 @@ body.portfolio-live .stat-card:hover {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 9997;
+  z-index: 20030;
   width: 5px;
   height: 5px;
   border-radius: 50%;
@@ -1317,7 +1317,7 @@ body.portfolio-live .stat-card:hover {
   position: fixed;
   left: 0;
   top: 0;
-  z-index: 9996;
+  z-index: 20020;
   width: 12px;
   height: 12px;
   border: 1px solid var(--accent-2);
