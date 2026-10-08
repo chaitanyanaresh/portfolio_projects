@@ -2225,3 +2225,47 @@ body.portfolio-live.experience-car .car-playground {
 @media (prefers-reduced-motion: reduce) {
   .car-playground { display: none !important; }
 }
+
+/* iPhone and small-screen layout repair: 2026-10-08 */
+@media (max-width: 760px) {
+  :root { --shell: calc(100% - 32px); }
+  html, body { width: 100%; max-width: 100%; overflow-x: clip; }
+  .shell, .hero, .hero-copy, .hero-card, .section-heading, .project-card,
+  .skill-card, .principle-card, .contact-card, .entry-console { min-width: 0; }
+  h1, h2, h3, p, li, strong, small, a { overflow-wrap: anywhere; }
+  .site-header { position: relative; }
+  .nav-wrap { min-height: 64px; flex-wrap: wrap; gap: 8px; padding: 10px 0; }
+  .brand span:last-child { display: inline; font-size: .82rem; }
+  .nav-links { display: flex; width: 100%; gap: 8px; overflow-x: auto; padding: 5px 0 8px; scrollbar-width: none; }
+  .nav-links a { white-space: nowrap; font-size: .78rem; padding: 8px 7px; }
+  .hero { padding: 46px 0 45px; gap: 24px; }
+  .hero h1 { font-size: clamp(2rem, 9vw, 3.5rem); line-height: 1.09; }
+  .section-heading h2, .contact-card h2 { font-size: clamp(1.85rem, 8vw, 3rem); line-height: 1.13; }
+  .hero-text { font-size: 1rem; margin-top: 20px; }
+  .stats { grid-template-columns: 1fr; gap: 12px; padding-bottom: 40px; }
+  .stat-card { min-height: auto; padding: 18px; }
+  .section { padding: 55px 0; }
+  .project-grid, .skill-grid, .principles-grid, .ai-layout, .contact-card { grid-template-columns: minmax(0, 1fr); }
+  .project-card { min-height: 0; padding: 20px; }
+  .project-card h3 { font-size: 1.35rem; }
+  .project-topline { flex-wrap: wrap; gap: 8px; }
+  .timeline-item { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .contact-card { padding: 22px; }
+  .cta-row { flex-direction: column; }
+  .cta-row .button { width: 100%; min-height: 48px; }
+  .entry-screen { min-height: 100dvh; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); align-items: safe center; overscroll-behavior: contain; }
+  .entry-console { width: 100%; max-width: 100%; max-height: calc(100dvh - 24px); overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .entry-console h1, .entry-console h2 { font-size: clamp(1.65rem, 7.5vw, 2.65rem); line-height: 1.14; }
+  .entry-actions, .companion-grid, .mission-grid { grid-template-columns: minmax(0, 1fr); }
+  .companion-card { grid-template-columns: 48px minmax(0, 1fr); padding: 14px; min-height: 96px; }
+  .companion-icon { width: 46px; height: 46px; font-size: 1.35rem; }
+  .game-button, .mission-card, .companion-card, .puzzle-skip { touch-action: manipulation; }
+  .game-hud { max-width: 100%; }
+}
+@media (max-width: 360px) {
+  :root { --shell: calc(100% - 24px); }
+  .brand span:last-child { font-size: .72rem; }
+  .hero h1 { font-size: 2rem; }
+  .entry-screen { padding-left: 8px; padding-right: 8px; }
+  .companion-card { gap: 9px; }
+}
