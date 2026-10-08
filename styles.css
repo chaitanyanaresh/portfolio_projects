@@ -2269,3 +2269,13 @@ body.portfolio-live.experience-car .car-playground {
   .entry-screen { padding-left: 8px; padding-right: 8px; }
   .companion-card { gap: 9px; }
 }
+
+/* Touch companions: keep the decorative experience visible without blocking taps. */
+@media (max-width: 760px) and (prefers-reduced-motion: no-preference) {
+ body.portfolio-live.experience-pets .pet-playground { display: block; height: 46px; bottom: env(safe-area-inset-bottom, 0px); }
+ body.portfolio-live.experience-car .car-playground { display: block; height: 54px; bottom: env(safe-area-inset-bottom, 0px); }
+ .pet-hint, .car-hint { display: none; }
+ .pet { font-size: 22px; }
+ .car-machine { transform: translate3d(24px,0,0); }
+ .car-finish { display: none; }
+}
