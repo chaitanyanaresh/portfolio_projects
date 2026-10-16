@@ -13,7 +13,7 @@ test("portfolio JavaScript is valid and parseable", () => {
 test("intro and companion choices are present with accessible buttons", () => {
   for (const id of ["play-intro", "skip-intro", "companion-skip", "mission-skip"]) {
     assert.match(html, new RegExp('<button[^>]*id="' + id + '"[^>]*type="button"'));
-    assert.match(js, new RegExp('getElementById\\("' + id + '"\\)'));
+    assert.ok(js.includes('getElementById("' + id + '")'));
   }
   for (const mode of ["car", "pets"]) {
     assert.match(html, new RegExp('class="companion-card[^"]*"[^>]*data-mode="' + mode + '"'));
