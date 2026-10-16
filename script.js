@@ -134,7 +134,10 @@ const updateGameHUD = () => {
   const max = document.documentElement.scrollHeight - window.innerHeight;
   const ratio = max > 0 ? Math.min(Math.max(window.scrollY / max, 0), 1) : 0;
   if (hudProgress) hudProgress.style.transform = `scaleX(${ratio})`;
-  if (hudPercent) {\n    const percent = Math.round(ratio * 100);\n    hudPercent.textContent = percent >= 100 ? "Still more to go with experience" : `${String(percent).padStart(2, "0")}%`;\n  }
+  if (hudPercent) {
+    const percent = Math.round(ratio * 100);
+    hudPercent.textContent = percent >= 100 ? "Still more to go with experience" : `${String(percent).padStart(2, "0")}%`;
+  }
   if (siteHeader) siteHeader.classList.toggle("scrolled", window.scrollY > 24);
 
   let currentId = "";
