@@ -29,7 +29,7 @@
       -120,
       command.boost ? 440 : 270
     );
-    if (command.boost) speed = Math.max(speed, 265);
+    if (command.boost) speed = Math.max(speed, 360);
     speed *= Math.pow(0.993, dt * 60);
 
     let x = state.x + Math.cos(heading) * speed * dt;
