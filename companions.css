@@ -80,12 +80,24 @@ body.portfolio-live.experience-car .car-playground {
 .pet-spark,
 .car-speed-line { pointer-events: none; }
 
+/* Touch screens: tap the page to steer without stealing swipe/scroll gestures. */
 @media (max-width: 760px), (pointer: coarse) {
-  .pet-playground,
-  .car-playground { display: none !important; }
+  body.portfolio-live.experience-pets .pet-playground,
+  body.portfolio-live.experience-car .car-playground {
+    display: block !important;
+  }
+  .pet-hint,
+  .car-hint {
+    top: 80px;
+    left: 10px;
+    max-width: calc(100vw - 20px);
+    font-size: .57rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  body.portfolio-live.experience-pets .pet-playground,
+  body.portfolio-live.experience-car .car-playground,
   .pet-playground,
   .car-playground { display: none !important; }
 }
