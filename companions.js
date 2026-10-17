@@ -1,6 +1,6 @@
 (function startViewportCompanions() {
   "use strict";
-  if (!finePointer || prefersReducedMotion || !globalThis.CompanionMotion) return;
+  if (prefersReducedMotion || !globalThis.CompanionMotion) return;
 
   const motion = globalThis.CompanionMotion;
   const isActive = (mode) => document.body.classList.contains("portfolio-live") &&
@@ -20,6 +20,23 @@
     lastPointerMove = performance.now();
   }, { passive: true });
 
+  // Touchscreen visitors can tap empty space without hijacking scrolling or links.
+  let tapStart = null;
+  window.addEventListener("pointerdown", (event) => {
+    if (finePointer || event.pointerType !== "touch" || interactive(event.target)) return;
+    tapStart = { x: event.clientX, y: event.clientY, id: event.pointerId, time: performance.now() };
+  }, { passive: true });
+  window.addEventListener("pointerup", (event) => {
+    if (!tapStart || event.pointerId !== tapStart.id) return;
+    const elapsed = performance.now() - tapStart.time;
+    if (elapsed < 550 && Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) < 14) {
+      pointer = { x: event.clientX, y: event.clientY };
+      lastPointerMove = performance.now();
+    }
+    tapStart = null;
+  }, { passive: true });
+  window.addEventListener("pointercancel", () => { tapStart = null; }, { passive: true });
+
   // Companions live on a full-viewport, click-through layer, not in a footer lane.
   const playground = document.createElement("div");
   playground.className = "pet-playground";
@@ -34,6 +51,7 @@
   const dog = playground.querySelector("#pet-dog");
   const cat = playground.querySelector("#pet-cat");
   const petHint = playground.querySelector(".pet-hint");
+  if (!finePointer) petHint.textContent = "tap empty space to guide the pets";
   const pets = [
     { element: dog, position: { x: pointer.x - 100, y: pointer.y + 75 }, offset: { x: -80, y: 62 }, smoothing: 0.085, facing: 1, pawRotation: -9 },
     { element: cat, position: { x: pointer.x + 40, y: pointer.y + 50 }, offset: { x: 32, y: 36 }, smoothing: 0.135, facing: 1, pawRotation: 9 }
@@ -79,7 +97,7 @@
   };
 
   document.addEventListener("pointerdown", (event) => {
-    if (!isActive("pets") || event.button !== 0 || interactive(event.target)) return;
+    if (!finePointer || !isActive("pets") || event.button !== 0 || interactive(event.target)) return;
     chaseTarget = { x: event.clientX, y: event.clientY };
     chaseEnds = performance.now() + 1050;
     petHint?.classList.add("hidden");
@@ -126,7 +144,7 @@
           `translate3d(${pet.position.x}px, ${pet.position.y}px, 0) scaleX(${pet.facing})`;
         pet.element.classList.toggle("targeted", !!chasing);
       }
-      if (motion.distance(pets[0].position, pointer) > 18 && now - lastPaw > 520) {
+      if (finePointer && motion.distance(pets[0].position, pointer) > 18 && now - lastPaw > 520) {
         lastPaw = now;
         for (const pet of pets) pawPrint(pet);
       }
@@ -151,6 +169,7 @@
   document.body.appendChild(carPlayground);
   const car = carPlayground.querySelector("#cursor-car");
   const carHint = carPlayground.querySelector(".car-hint");
+  if (!finePointer) carHint.textContent = "tap empty space to steer the car";
   let carPosition = { x: pointer.x - 65, y: pointer.y + 35 };
   let carFacing = 1;
   let boostTimer = 0;
@@ -169,7 +188,7 @@
   };
 
   document.addEventListener("pointerdown", (event) => {
-    if (!isActive("car") || event.button !== 0 || interactive(event.target)) return;
+    if (!finePointer || !isActive("car") || event.button !== 0 || interactive(event.target)) return;
     window.clearTimeout(boostTimer);
     carPlayground.classList.add("boosting", "driving");
     carHint?.classList.add("hidden");
