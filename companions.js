@@ -202,15 +202,22 @@
   }, { passive: true });
   document.documentElement.addEventListener("mouseleave", () => { lastMousePoint = null; });
 
+  let remoteTap = null;
+  window.addEventListener("pointerdown", (event) => {
+    if (finePointer || event.pointerType !== "touch" || !isActive("car") || interactive(event.target)) return;
+    remoteTap = { x: event.clientX, y: event.clientY, id: event.pointerId, time: performance.now() };
+  }, { passive: true });
   window.addEventListener("pointerup", (event) => {
-    if (finePointer || event.pointerType !== "touch" || !isActive("car") ||
-        interactive(event.target) || !tapStart) return;
-    const elapsed = performance.now() - tapStart.time;
-    if (elapsed > 550 || Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) >= 14) return;
+    if (!remoteTap || event.pointerId !== remoteTap.id) return;
+    const elapsed = performance.now() - remoteTap.time;
+    const moved = Math.hypot(event.clientX - remoteTap.x, event.clientY - remoteTap.y);
+    remoteTap = null;
+    if (!isActive("car") || interactive(event.target) || elapsed > 550 || moved >= 14) return;
     const horizontal = event.clientX / Math.max(1, window.innerWidth) - 0.5;
     const vertical = event.clientY / Math.max(1, window.innerHeight) - 0.5;
     queueRemoteCommand(horizontal * 0.65, -vertical * 210);
   }, { passive: true });
+  window.addEventListener("pointercancel", () => { remoteTap = null; }, { passive: true });
 
   const speedLines = () => {
     const rect = car.getBoundingClientRect();
