@@ -220,7 +220,8 @@
   };
   requestAnimationFrame(animatePets);
 
-  // RC car: the glowing mouse ball is the remote, NOT a destination.
+
+  // The mouse ball is an analog remote. It never becomes the car's destination.
   const carPlayground = document.createElement("div");
   carPlayground.className = "car-playground";
   carPlayground.setAttribute("aria-hidden", "true");
@@ -231,102 +232,158 @@
       <span class="car-wheel back"></span>
       <span class="car-wheel front"></span>
     </div>
-    <div class="car-hint">mouse left/right: turn • up/down: speed • click: turbo</div>
+    <div class="car-hint">cursor up/down = speed • left/right = steer • click = turbo • arrows/WASD work too</div>
+    <div class="car-readout" id="car-readout">RC READY • MOVE THE CURSOR</div>
   `;
   document.body.appendChild(carPlayground);
   const car = carPlayground.querySelector("#cursor-car");
   const carHint = carPlayground.querySelector(".car-hint");
-  if (!finePointer) carHint.textContent = "tap left/right to turn • top/bottom for speed";
+  const readout = carPlayground.querySelector("#car-readout");
+
+  const touchPad = document.createElement("div");
+  touchPad.className = "rc-touch-pad";
+  touchPad.setAttribute("role", "group");
+  touchPad.setAttribute("aria-label", "Remote control car directions");
+  touchPad.innerHTML = `
+    <button type="button" data-rc="left" aria-label="Turn left">◀</button>
+    <button type="button" data-rc="forward" aria-label="Drive forward">▲</button>
+    <button type="button" data-rc="reverse" aria-label="Reverse">▼</button>
+    <button type="button" data-rc="right" aria-label="Turn right">▶</button>
+    <button type="button" data-rc="boost" aria-label="Turbo boost">⚡</button>
+  `;
+  document.body.appendChild(touchPad);
+  if (!finePointer) carHint.textContent = "Use the remote buttons below to steer, reverse or boost";
 
   let carState = {
-    x: Math.max(18, window.innerWidth * 0.14),
-    y: Math.max(16, window.innerHeight * 0.68),
+    x: Math.min(Math.max(18, window.innerWidth * 0.12), Math.max(12, window.innerWidth - 110)),
+    y: Math.min(Math.max(16, window.innerHeight * 0.69), Math.max(12, window.innerHeight - 60)),
     heading: 0,
     speed: 0
   };
-  let lastMousePoint = null;
-  let steerCommand = 0;
-  let speedCommand = 0;
-  let turboEnds = 0;
+  const pressedKeys = new Set();
+  const pressedTouch = new Set();
   let lastFrame = performance.now();
+  let turboEnds = 0;
+  let mouseEngaged = false;
+  let mouseOnLink = false;
+  let keyboardUsed = false;
+  let lastReadout = 0;
+  const keyMap = new Map([
+    ["arrowup", "forward"], ["w", "forward"],
+    ["arrowdown", "reverse"], ["s", "reverse"],
+    ["arrowleft", "left"], ["a", "left"],
+    ["arrowright", "right"], ["d", "right"],
+    [" ", "boost"]
+  ]);
 
-  const queueRemoteCommand = (turn, throttle) => {
-    steerCommand = motion.clamp(steerCommand + turn, -0.7, 0.7);
-    speedCommand = motion.clamp(speedCommand + throttle, -140, 140);
+  const turbo = () => {
+    turboEnds = performance.now() + 720;
     carHint?.classList.add("hidden");
-  };
-
-  window.addEventListener("pointermove", (event) => {
-    if (event.pointerType === "touch") return;
-    const next = { x: event.clientX, y: event.clientY };
-    if (lastMousePoint && isActive("car")) {
-      // Mouse displacement is the control input, not the car's destination.
-      const dx = next.x - lastMousePoint.x;
-      const dy = next.y - lastMousePoint.y;
-      queueRemoteCommand(dx * 0.006, -dy * 1.35);
-    }
-    lastMousePoint = next;
-  }, { passive: true });
-  document.documentElement.addEventListener("mouseleave", () => { lastMousePoint = null; });
-
-  let remoteTap = null;
-  window.addEventListener("pointerdown", (event) => {
-    if (finePointer || event.pointerType !== "touch" || !isActive("car") || interactive(event.target)) return;
-    remoteTap = { x: event.clientX, y: event.clientY, id: event.pointerId, time: performance.now() };
-  }, { passive: true });
-  window.addEventListener("pointerup", (event) => {
-    if (!remoteTap || event.pointerId !== remoteTap.id) return;
-    const elapsed = performance.now() - remoteTap.time;
-    const moved = Math.hypot(event.clientX - remoteTap.x, event.clientY - remoteTap.y);
-    remoteTap = null;
-    if (!isActive("car") || interactive(event.target) || elapsed > 550 || moved >= 14) return;
-    const horizontal = event.clientX / Math.max(1, window.innerWidth) - 0.5;
-    const vertical = event.clientY / Math.max(1, window.innerHeight) - 0.5;
-    queueRemoteCommand(horizontal * 0.65, -vertical * 210);
-  }, { passive: true });
-  window.addEventListener("pointercancel", () => { remoteTap = null; }, { passive: true });
-
-  const speedLines = () => {
     const rect = car.getBoundingClientRect();
-    const forwardX = Math.cos(carState.heading) >= 0 ? 1 : -1;
     for (let i = 0; i < 5; i += 1) {
       const line = document.createElement("span");
       line.className = "car-speed-line";
-      line.style.left = `${forwardX < 0 ? rect.right + i * 8 : rect.left - i * 8}px`;
-      line.style.top = `${rect.top + 12 + i * 5}px`;
+      line.style.left = `${rect.left + rect.width / 2 - 40}px`;
+      line.style.top = `${rect.top + 9 + i * 7}px`;
       document.body.appendChild(line);
       window.setTimeout(() => line.remove(), 620);
     }
   };
 
-  document.addEventListener("pointerdown", (event) => {
-    if (!finePointer || !isActive("car") || event.button !== 0 || interactive(event.target)) return;
-    turboEnds = performance.now() + 720;
-    carPlayground.classList.add("boosting", "driving");
-    carHint?.classList.add("hidden");
-    speedLines();
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch" || !isActive("car")) return;
+    mouseEngaged = true;
+    keyboardUsed = false;
+    mouseOnLink = interactive(event.target);
+    if (!mouseOnLink) carHint?.classList.add("hidden");
+  }, { passive: true });
+
+  const handledKeys = new Set(["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", " "]);
+  window.addEventListener("keydown", (event) => {
+    const key = event.key.toLowerCase();
+    if (!isActive("car") || !handledKeys.has(key) || interactive(document.activeElement) ||
+        event.altKey || event.ctrlKey || event.metaKey) return;
+    event.preventDefault();
+    keyboardUsed = true;
+    pressedKeys.add(keyMap.get(key));
+    if (key === " " && !event.repeat) turbo();
+  });
+  window.addEventListener("keyup", (event) => {
+    const key = event.key.toLowerCase();
+    if (!handledKeys.has(key)) return;
+    pressedKeys.delete(keyMap.get(key));
+    if (isActive("car") && !interactive(document.activeElement)) event.preventDefault();
+  });
+  window.addEventListener("blur", () => {
+    pressedKeys.clear();
+    pressedTouch.clear();
+    mouseEngaged = false;
+    keyboardUsed = false;
   });
 
+  touchPad.querySelectorAll("button").forEach((button) => {
+    const direction = button.dataset.rc;
+    const stop = () => {
+      pressedTouch.delete(direction);
+      button.classList.remove("held");
+    };
+    button.addEventListener("pointerdown", (event) => {
+      if (!isActive("car")) return;
+      event.preventDefault();
+      if (button.setPointerCapture) button.setPointerCapture(event.pointerId);
+      pressedTouch.add(direction);
+      button.classList.add("held");
+      if (direction === "boost") turbo();
+    });
+    for (const type of ["pointerup", "pointercancel", "lostpointercapture", "pointerleave"]) {
+      button.addEventListener(type, stop);
+    }
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (isActive("car") && direction === "boost") turbo();
+    });
+  });
+
+  document.addEventListener("pointerdown", (event) => {
+    if (finePointer && isActive("car") && event.button === 0 && !interactive(event.target)) {
+      turbo();
+    }
+  });
+
+  const carInputs = () => {
+    const directional = (direction) => pressedKeys.has(direction) || pressedTouch.has(direction);
+    if (keyboardUsed || pressedKeys.size || pressedTouch.size) {
+      return {
+        steer: Number(directional("right")) - Number(directional("left")),
+        throttle: Number(directional("forward")) - Number(directional("reverse"))
+      };
+    }
+    return mouseEngaged && !mouseOnLink
+      ? motion.pointerRemoteAxes(pointer, viewport())
+      : { steer: 0, throttle: 0 };
+  };
+
   const animateCar = (now) => {
-    const delta = Math.min(Math.max((now - lastFrame) / 1000, 0), 0.05);
+    const dt = Math.min(Math.max((now - lastFrame) / 1000, 0), 0.05);
     lastFrame = now;
     if (isActive("car")) {
+      const axes = carInputs();
       const boosting = now < turboEnds;
       carState = motion.driveRemoteCar(
         carState,
-        { turn: steerCommand, throttle: speedCommand, boost: boosting },
+        { steer: axes.steer, throttle: boosting ? Math.max(axes.throttle, 0.8) : axes.throttle, boost: boosting },
         viewport(),
-        pointer,
-        delta
+        pointer, dt
       );
-      steerCommand = 0;
-      speedCommand = 0;
-
-      // Rotate the body in its actual direction of travel.
-      car.style.transform =
-        `translate3d(${carState.x}px, ${carState.y}px, 0) rotate(${carState.heading}rad)`;
+      car.style.transform = `translate3d(${carState.x}px, ${carState.y}px, 0) rotate(${carState.heading}rad)`;
       carPlayground.classList.toggle("boosting", boosting);
       carPlayground.classList.toggle("driving", boosting || Math.abs(carState.speed) > 7);
+      if (now - lastReadout > 160) {
+        lastReadout = now;
+        const motionLabel = carState.speed > 12 ? "FORWARD" : carState.speed < -12 ? "REVERSE" : "STOPPED";
+        const turnLabel = axes.steer < -0.15 ? "LEFT" : axes.steer > 0.15 ? "RIGHT" : "STRAIGHT";
+        readout.textContent = `RC • ${motionLabel} • ${turnLabel}`;
+      }
     }
     requestAnimationFrame(animateCar);
   };
