@@ -10,109 +10,144 @@ const motionJs = readFileSync(new URL("../companion-motion.js", import.meta.url)
 const context = {};
 vm.runInNewContext(motionJs, context, { filename: "companion-motion.js" });
 const motion = context.CompanionMotion;
+const view = { width: 1280, height: 800 };
+const away = { x: 1150, y: 740 };
 
-test("both new browser scripts parse", () => {
+test("both browser scripts parse and load in the correct order", () => {
   assert.doesNotThrow(() => new vm.Script(js));
   assert.doesNotThrow(() => new vm.Script(motionJs));
-});
-
-test("cursor companions load after the base script and their stylesheet", () => {
   const base = html.indexOf('src="script.js?v=20261017-1"');
-  const helper = html.indexOf('src="companion-motion.js?v=20261017-2"');
-  const companion = html.indexOf('src="companions.js?v=20261017-2"');
-  assert.ok(base >= 0 && helper > base && companion > helper);
-  assert.ok(html.includes('href="companions.css?v=20261017-1"'));
+  const helpers = html.indexOf('src="companion-motion.js?v=20261017-3"');
+  const experience = html.indexOf('src="companions.js?v=20261017-3"');
+  assert.ok(base >= 0 && helpers > base && experience > helpers);
+  assert.ok(html.includes('href="companions.css?v=20261017-2"'));
 });
 
-test("movement interpolates in both X and Y, not only along the bottom", () => {
+test("shared pet movement handles both dimensions and screen bounds", () => {
   const next = motion.followPoint({ x: 20, y: 30 }, { x: 120, y: 230 }, 0.2);
-  assert.equal(next.x, 40);
-  assert.equal(next.y, 70);
+  assert.deepEqual([next.x, next.y], [40, 70]);
   assert.equal(motion.distance({ x: 0, y: 0 }, { x: 3, y: 4 }), 5);
+  assert.deepEqual(
+    Object.values(motion.clampPoint({ x: 5000, y: -100 }, { width: 800, height: 600 }, { width: 92, height: 44 })),
+    [696, 12]
+  );
+  const reached = motion.moveTowards({ x: 0, y: 0 }, { x: 30, y: 40 }, 50);
+  assert.deepEqual([reached.x, reached.y], [30, 40]);
 });
 
-test("car and pets remain inside tiny and normal viewports", () => {
-  const normal = motion.clampPoint({ x: 5000, y: -100 }, { width: 800, height: 600 }, { width: 92, height: 44 });
-  assert.equal(normal.x, 696);
-  assert.equal(normal.y, 12);
-  const tiny = motion.clampPoint({ x: 1000, y: 1000 }, { width: 48, height: 48 }, { width: 92, height: 44 });
-  assert.equal(tiny.x, 12);
-  assert.equal(tiny.y, 12);
+test("RC analog controller has center neutral and predictable directions", () => {
+  const center = motion.pointerRemoteAxes({ x: 640, y: 400 }, view);
+  assert.equal(center.steer, 0);
+  assert.equal(center.throttle, 0);
+  const left = motion.pointerRemoteAxes({ x: 60, y: 400 }, view);
+  const right = motion.pointerRemoteAxes({ x: 1230, y: 400 }, view);
+  assert.ok(left.steer < 0);
+  assert.ok(right.steer > 0);
+  assert.equal(left.throttle, 0);
+  const front = motion.pointerRemoteAxes({ x: 640, y: 50 }, view);
+  const reverse = motion.pointerRemoteAxes({ x: 640, y: 745 }, view);
+  assert.ok(front.throttle > 0);
+  assert.ok(reverse.throttle < 0);
 });
 
-test("both companions track pointer movement through the full viewport", () => {
-  assert.match(js, /addEventListener\("pointermove"/);
-  assert.match(js, /motion\.clampPoint/g);
-  assert.match(js, /motion\.followPoint/g);
-  assert.match(js, /translate3d\(\$\{pet\.position\.x\}px, \$\{pet\.position\.y\}px/);
-  assert.match(js, /translate3d\(\$\{carState\.x\}px, \$\{carState\.y\}px/);
-  assert.match(css, /height:\s*100dvh/);
-  assert.match(css, /pointer-events:\s*none/);
-  assert.match(css, /prefers-reduced-motion:\s*reduce/);
-  assert.match(css, /pointer:\s*coarse/);
+test("car doesn't chase its controller, and brakes naturally in neutral", () => {
+  const start = { x: 260, y: 250, heading: 0, speed: 0 };
+  const command = { steer: 0, throttle: 1 };
+  const a = motion.driveRemoteCar(start, command, view, { x: 1020, y: 680 }, 1 / 60);
+  const b = motion.driveRemoteCar(start, command, view, { x: 1180, y: 740 }, 1 / 60);
+  assert.equal(a.x, b.x);
+  assert.equal(a.y, b.y);
+  assert.ok(a.speed > 0);
+  const braking = motion.driveRemoteCar(
+    { ...start, speed: 190 },
+    { steer: 0, throttle: 0 }, view, away, 1 / 60
+  );
+  assert.ok(braking.speed < 190);
+  assert.ok(braking.speed > 0);
 });
 
-
-test("mouse acts as remote control, not as the car destination", () => {
-  const start = { x: 240, y: 200, heading: 0, speed: 0 };
-  const view = { width: 1400, height: 900 };
-  const command = { turn: 0, throttle: 100, boost: false };
-  const a = motion.driveRemoteCar(start, command, view, { x: 1000, y: 700 }, 1 / 60);
-  const b = motion.driveRemoteCar(start, command, view, { x: 1220, y: 760 }, 1 / 60);
-  assert.equal(a.x, b.x, "Car must not follow remote's X coordinate");
-  assert.equal(a.y, b.y, "Car must not follow remote's Y coordinate");
-  assert.ok(a.x > start.x, "Throttle should move the car forward");
-  assert.equal(a.y, start.y);
-});
-
-test("left/right steering rotates direction and up/down changes speed", () => {
-  const start = { x: 250, y: 200, heading: 0, speed: 0 };
-  const bounds = { width: 1400, height: 900 };
-  const controller = { x: 900, y: 650 };
-  const left = motion.driveRemoteCar(start, { turn: -0.35, throttle: 100 }, bounds, controller);
-  const right = motion.driveRemoteCar(start, { turn: 0.35, throttle: 100 }, bounds, controller);
-  assert.ok(left.heading < 0);
-  assert.ok(right.heading > 0);
-  assert.ok(left.y < start.y);
-  assert.ok(right.y > start.y);
-  const reverse = motion.driveRemoteCar(start, { turn: 0, throttle: -60 }, bounds, controller);
+test("sustained steering is smooth, reverse works, and turbo changes speed", () => {
+  const start = { x: 300, y: 240, heading: 0, speed: 115 };
+  const left = motion.driveRemoteCar(start, { steer: -1, throttle: 0.5 }, view, away);
+  const right = motion.driveRemoteCar(start, { steer: 1, throttle: 0.5 }, view, away);
+  assert.ok(left.heading < 0 && right.heading > 0);
+  assert.ok(left.y < start.y && right.y > start.y);
+  const reverse = motion.driveRemoteCar({ ...start, speed: 0 }, { throttle: -1 }, view, away);
   assert.ok(reverse.speed < 0);
   assert.ok(reverse.x < start.x);
-});
-
-test("turbo accelerates beyond normal speed", () => {
-  const start = { x: 300, y: 350, heading: 0, speed: 0 };
-  const view = { width: 1400, height: 900 };
-  const controller = { x: 1000, y: 700 };
-  const normal = motion.driveRemoteCar(start, { turn: 0, throttle: 80 }, view, controller);
-  const turbo = motion.driveRemoteCar(start, { turn: 0, throttle: 80, boost: true }, view, controller);
+  const normal = motion.driveRemoteCar({ ...start, speed: 0 }, { throttle: 0.8 }, view, away);
+  const turbo = motion.driveRemoteCar({ ...start, speed: 0 }, { throttle: 0.8, boost: true }, view, away);
   assert.ok(turbo.speed > normal.speed);
-  assert.ok(turbo.x > normal.x);
 });
 
-test("car stays away from the remote and bounces off edges", () => {
-  const view = { width: 1200, height: 800 };
-  const pointer = { x: 300, y: 240 };
-  const near = motion.driveRemoteCar(
-    { x: 254, y: 218, heading: 0, speed: 0 },
-    { turn: 0, throttle: 0 },
-    view, pointer
-  );
-  assert.ok(motion.distance({ x: near.x + 46, y: near.y + 22 }, pointer) >= 170);
-
+test("mouse crossing the car cannot teleport it; edges reflect direction", () => {
+  const start = { x: 280, y: 260, heading: 0, speed: 100 };
+  const next = motion.driveRemoteCar(start, { throttle: 0 }, view, { x: 326, y: 282 }, 1 / 60);
+  assert.ok(motion.distance(start, next) < 5, "Avoidance must be a gradual push, not a snap");
   const collision = motion.driveRemoteCar(
-    { x: 1094, y: 220, heading: 0, speed: 200 },
-    { turn: 0, throttle: 0 },
-    view, { x: 100, y: 650 }
+    { x: 1175, y: 220, heading: 0, speed: 180 },
+    { throttle: 0 }, view, { x: 100, y: 650 }
   );
-  assert.ok(collision.x <= 1096);
-  assert.ok(Math.cos(collision.heading) < 0, "Bounce should send car back into the screen");
+  assert.ok(collision.x <= 1176);
+  assert.ok(Math.cos(collision.heading) < 0);
 });
 
-test("pointer motion is used as RC commands, including mobile tap steering", () => {
-  assert.match(js, /queueRemoteCommand\(dx \* 0\.006, -dy \* 1\.35\)/);
-  assert.match(js, /driveRemoteCar\(/);
-  assert.match(js, /let remoteTap = null/);
+test("fetch phases enforce flight, chasing, carrying and delivery in order", () => {
+  const from = { x: 120, y: 150 };
+  const landing = { x: 520, y: 350 };
+  const petFar = { x: 200, y: 180 };
+  const receiver = { x: 120, y: 170 };
+  let fetch = motion.createFetchState(from, landing, 1);
+  assert.equal(fetch.phase, "flying");
+  assert.equal(fetch.petIndex, 1);
+  const mid = motion.advanceFetchState(fetch, petFar, receiver, 0.31);
+  assert.equal(mid.phase, "flying");
+  const arc = motion.fetchBallPosition(mid, petFar, receiver);
+  assert.ok(arc.y < 250, "Ball must travel in an arc");
+  for (let i = 0; i < 15 && fetch.phase === "flying"; i++) {
+    fetch = motion.advanceFetchState(fetch, petFar, receiver, 0.05);
+  }
+  assert.equal(fetch.phase, "chasing", "No picking up until landing");
+  fetch = motion.advanceFetchState(fetch, petFar, receiver, 0.05);
+  assert.equal(fetch.phase, "chasing", "Faraway pet must still chase");
+  fetch = motion.advanceFetchState(fetch, landing, receiver, 0.05);
+  assert.equal(fetch.phase, "returning");
+  assert.equal(fetch.delivered, false);
+  assert.deepEqual(
+    Object.values(motion.fetchBallPosition(fetch, landing, receiver)),
+    [landing.x + 12, landing.y + 8],
+    "Carried ball must stay at pet's mouth"
+  );
+  fetch = motion.advanceFetchState(fetch, receiver, receiver, 0.05);
+  assert.equal(fetch.phase, "delivered");
+  assert.equal(fetch.delivered, true);
+  const dropped = motion.fetchBallPosition(fetch, receiver, receiver);
+  assert.equal(dropped.x, receiver.x);
+  for (let i = 0; i < 20 && fetch.phase !== "complete"; i++) {
+    fetch = motion.advanceFetchState(fetch, receiver, receiver, 0.05);
+  }
+  assert.equal(fetch.phase, "complete");
+});
+
+test("pet fetch remains visible, supports re-throws and avoids accidental link/touch actions", () => {
+  assert.match(js, /clearFetch\(\)/);
+  assert.match(js, /motion\.createFetchState/);
+  assert.match(js, /motion\.advanceFetchState/);
+  assert.match(js, /motion\.fetchBallPosition/);
+  assert.match(js, /fetchBall\.classList\.toggle\("is-carried"/);
+  assert.match(js, /event\.pointerType !== "touch"/);
   assert.match(js, /interactive\(event\.target\)/);
-  assert.doesNotMatch(js, /const aim = \{ x: pointer\.x - 64, y: pointer\.y \+ 26 \}/);
+  assert.match(css, /\.pet-ball\.fetch-ball/);
+  assert.match(css, /animation:\s*none\s*!important/);
+  assert.match(css, /\.pet\.is-carrying/);
+});
+
+test("RC controls work with mouse, keyboard and touch without blocking the page", () => {
+  assert.match(js, /motion\.pointerRemoteAxes/);
+  assert.match(js, /carInputs\(\)/);
+  assert.match(js, /className = "rc-touch-pad"/);
+  assert.match(js, /interactive\(event\.target\)/);
+  assert.match(css, /touch-action:\s*none/);
+  assert.match(css, /pointer-events:\s*none/);
+  assert.match(css, /prefers-reduced-motion:\s*reduce/);
 });

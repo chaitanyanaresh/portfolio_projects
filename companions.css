@@ -101,3 +101,140 @@ body.portfolio-live.experience-car .car-playground {
   .pet-playground,
   .car-playground { display: none !important; }
 }
+
+
+/* The tossed ball stays visible until the pet carries it back and drops it. */
+.pet-ball.fetch-ball {
+  animation: none !important;
+  opacity: 1;
+  will-change: transform;
+  z-index: 50005;
+  box-shadow: 0 0 0 3px rgba(142,230,207,.15), 0 0 19px rgba(142,230,207,.92);
+}
+.pet-ball.fetch-ball.is-carried {
+  box-shadow: 0 0 0 4px rgba(142,230,207,.21), 0 0 22px rgba(142,230,207,1);
+}
+.pet-ball.fetch-ball.is-delivered {
+  box-shadow: 0 0 0 7px rgba(142,230,207,.13), 0 0 22px rgba(142,230,207,.8);
+}
+.pet.is-carrying .pet-body {
+  animation: petStep .21s ease-in-out infinite alternate;
+}
+.pet.is-carrying::after {
+  border-color: rgba(142,230,207,.8);
+  opacity: 1;
+}
+.pet-playground .pet-emote {
+  z-index: 3;
+}
+
+/* Readable game status without hiding portfolio links. */
+.car-readout {
+  position: fixed;
+  top: 117px;
+  left: 18px;
+  z-index: 1;
+  padding: 5px 10px;
+  color: #b8f4e5;
+  background: rgba(8,17,31,.78);
+  border: 1px solid rgba(142,230,207,.22);
+  border-radius: 999px;
+  letter-spacing: .08em;
+  font-size: .62rem;
+  font-weight: 750;
+  pointer-events: none;
+}
+
+/* Top-down RC shell: wheels remain upright relative to the car as it turns. */
+.car-machine { width: 92px; height: 44px; }
+.car-shell {
+  left: 9px;
+  top: 8px;
+  bottom: auto;
+  width: 72px;
+  height: 30px;
+  border-radius: 22px 18px 18px 22px;
+  background: linear-gradient(180deg, #5c8cff 0%, #8ee6cf 45%, #4b76d9 100%);
+}
+.car-shell::before {
+  left: 26px;
+  top: 4px;
+  width: 22px;
+  height: 20px;
+  border: 1px solid rgba(155,192,255,.6);
+  border-radius: 8px;
+  background: linear-gradient(125deg, #071625, #5c87ab);
+  transform: none;
+}
+.car-light { right: 2px; top: 8px; width: 7px; height: 12px; border-radius: 5px; }
+.car-wheel,
+.car-wheel.front,
+.car-wheel.back {
+  top: 1px;
+  bottom: auto;
+  height: 9px;
+  width: 16px;
+  border: 1px solid #02060b;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #172334, #02050a);
+}
+.car-wheel.back { left: 18px; right: auto; }
+.car-wheel.front { left: auto; right: 16px; }
+.car-wheel::after {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 31px;
+  width: 16px;
+  height: 9px;
+  border: 1px solid #02060b;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #172334, #02050a);
+}
+.car-playground.driving .car-wheel,
+.car-playground.boosting .car-wheel { animation: none; }
+
+/* Touch remote uses small accessible buttons without trapping page scrolling. */
+.rc-touch-pad { display: none; }
+@media (pointer: coarse) {
+  body.portfolio-live.experience-car .rc-touch-pad {
+    position: fixed;
+    z-index: 50000;
+    left: 50%;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: flex;
+    gap: 7px;
+    border: 1px solid rgba(142,230,207,.22);
+    border-radius: 18px;
+    padding: 8px;
+    background: rgba(6,16,28,.91);
+    box-shadow: 0 12px 35px rgba(0,0,0,.25);
+    max-width: calc(100vw - 16px);
+  }
+  .rc-touch-pad button {
+    flex: 1 1 auto;
+    min-width: 44px;
+    min-height: 46px;
+    border: 1px solid rgba(155,192,255,.45);
+    border-radius: 12px;
+    background: rgba(115,167,255,.12);
+    color: #dceeff;
+    font-size: 1.15rem;
+    font-weight: 800;
+    touch-action: none;
+    user-select: none;
+    cursor: pointer;
+  }
+  .rc-touch-pad button.held,
+  .rc-touch-pad button:focus-visible {
+    border-color: #8ee6cf;
+    background: rgba(142,230,207,.22);
+    outline: 2px solid rgba(142,230,207,.5);
+  }
+  .car-readout { top: 108px; left: 10px; }
+  .car-hint { top: 75px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rc-touch-pad { display: none !important; }
+}
