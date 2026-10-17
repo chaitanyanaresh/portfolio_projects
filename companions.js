@@ -10,12 +10,10 @@
     !!target.closest("a, button, input, textarea, select, summary, [role='button'], [contenteditable='true']");
 
   let pointer = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-  let previousPointer = { ...pointer };
   let lastPointerMove = 0;
 
   window.addEventListener("pointermove", (event) => {
     if (event.pointerType === "touch") return;
-    previousPointer = pointer;
     pointer = { x: event.clientX, y: event.clientY };
     lastPointerMove = performance.now();
   }, { passive: true });
@@ -144,7 +142,7 @@
           `translate3d(${pet.position.x}px, ${pet.position.y}px, 0) scaleX(${pet.facing})`;
         pet.element.classList.toggle("targeted", !!chasing);
       }
-      if (finePointer && motion.distance(pets[0].position, pointer) > 18 && now - lastPaw > 520) {
+      if (finePointer && (chasing || now - lastPointerMove < 1200) && motion.distance(pets[0].position, pointer) > 18 && now - lastPaw > 520) {
         lastPaw = now;
         for (const pet of pets) pawPrint(pet);
       }
