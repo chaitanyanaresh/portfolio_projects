@@ -49,7 +49,7 @@
   const dog = playground.querySelector("#pet-dog");
   const cat = playground.querySelector("#pet-cat");
   const petHint = playground.querySelector(".pet-hint");
-  if (!finePointer) petHint.textContent = "tap empty space to guide the pets";
+  if (!finePointer) petHint.textContent = "tap empty space to throw a ball for the pets";
   const pets = [
     { element: dog, position: { x: pointer.x - 100, y: pointer.y + 75 }, offset: { x: -80, y: 62 }, smoothing: 0.085, facing: 1, pawRotation: -9 },
     { element: cat, position: { x: pointer.x + 40, y: pointer.y + 50 }, offset: { x: 32, y: 36 }, smoothing: 0.135, facing: 1, pawRotation: 9 }
@@ -58,7 +58,7 @@
   let lastPaw = 0;
   let fetchState = null;
   let fetchBall = null;
-  let lastThrow = 0;
+  let lastThrow = -Infinity;
   let lastFetcher = -1;
   let previousPetFrame = performance.now();
 
