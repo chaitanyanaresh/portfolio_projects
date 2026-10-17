@@ -33,5 +33,5 @@ test("mission choices point to real portfolio sections", () => {
 });
 
 test("script uses a refreshed URL after repair", () => {
-  assert.match(html, /<script src="script\.js\?v=20261016-1"><\/script>/);
+  assert.match(html, /<script src="script\.js\?v=20261017-1"><\/script>/);
 });
