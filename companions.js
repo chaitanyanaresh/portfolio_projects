@@ -152,6 +152,8 @@
   };
   animatePets();
 
+
+  // RC car: the glowing mouse ball is the remote, NOT a destination.
   const carPlayground = document.createElement("div");
   carPlayground.className = "car-playground";
   carPlayground.setAttribute("aria-hidden", "true");
@@ -162,24 +164,62 @@
       <span class="car-wheel back"></span>
       <span class="car-wheel front"></span>
     </div>
-    <div class="car-hint">steer anywhere with your cursor • click for boost</div>
+    <div class="car-hint">mouse left/right: turn • up/down: speed • click: turbo</div>
   `;
   document.body.appendChild(carPlayground);
   const car = carPlayground.querySelector("#cursor-car");
   const carHint = carPlayground.querySelector(".car-hint");
-  if (!finePointer) carHint.textContent = "tap empty space to steer the car";
-  let carPosition = { x: pointer.x - 65, y: pointer.y + 35 };
-  let carFacing = 1;
-  let boostTimer = 0;
+  if (!finePointer) carHint.textContent = "tap left/right to turn • top/bottom for speed";
+
+  let carState = {
+    x: Math.max(18, window.innerWidth * 0.14),
+    y: Math.max(16, window.innerHeight * 0.68),
+    heading: 0,
+    speed: 0
+  };
+  let lastMousePoint = null;
+  let steerCommand = 0;
+  let speedCommand = 0;
+  let turboEnds = 0;
+  let lastFrame = performance.now();
+
+  const queueRemoteCommand = (turn, throttle) => {
+    steerCommand = motion.clamp(steerCommand + turn, -0.7, 0.7);
+    speedCommand = motion.clamp(speedCommand + throttle, -140, 140);
+    carHint?.classList.add("hidden");
+  };
+
+  window.addEventListener("pointermove", (event) => {
+    if (event.pointerType === "touch") return;
+    const next = { x: event.clientX, y: event.clientY };
+    if (lastMousePoint && isActive("car")) {
+      // Mouse displacement is the control input, not the car's destination.
+      const dx = next.x - lastMousePoint.x;
+      const dy = next.y - lastMousePoint.y;
+      queueRemoteCommand(dx * 0.006, -dy * 1.35);
+    }
+    lastMousePoint = next;
+  }, { passive: true });
+  document.documentElement.addEventListener("mouseleave", () => { lastMousePoint = null; });
+
+  window.addEventListener("pointerup", (event) => {
+    if (finePointer || event.pointerType !== "touch" || !isActive("car") ||
+        interactive(event.target) || !tapStart) return;
+    const elapsed = performance.now() - tapStart.time;
+    if (elapsed > 550 || Math.hypot(event.clientX - tapStart.x, event.clientY - tapStart.y) >= 14) return;
+    const horizontal = event.clientX / Math.max(1, window.innerWidth) - 0.5;
+    const vertical = event.clientY / Math.max(1, window.innerHeight) - 0.5;
+    queueRemoteCommand(horizontal * 0.65, -vertical * 210);
+  }, { passive: true });
 
   const speedLines = () => {
     const rect = car.getBoundingClientRect();
+    const forwardX = Math.cos(carState.heading) >= 0 ? 1 : -1;
     for (let i = 0; i < 5; i += 1) {
       const line = document.createElement("span");
       line.className = "car-speed-line";
-      line.style.left = `${carFacing < 0 ? rect.right + i * 8 : rect.left - i * 8}px`;
+      line.style.left = `${forwardX < 0 ? rect.right + i * 8 : rect.left - i * 8}px`;
       line.style.top = `${rect.top + 12 + i * 5}px`;
-      line.style.transform = `scaleX(${carFacing})`;
       document.body.appendChild(line);
       window.setTimeout(() => line.remove(), 620);
     }
@@ -187,29 +227,34 @@
 
   document.addEventListener("pointerdown", (event) => {
     if (!finePointer || !isActive("car") || event.button !== 0 || interactive(event.target)) return;
-    window.clearTimeout(boostTimer);
+    turboEnds = performance.now() + 720;
     carPlayground.classList.add("boosting", "driving");
     carHint?.classList.add("hidden");
     speedLines();
-    boostTimer = window.setTimeout(() => carPlayground.classList.remove("boosting"), 720);
   });
 
-  const animateCar = () => {
+  const animateCar = (now) => {
+    const delta = Math.min(Math.max((now - lastFrame) / 1000, 0), 0.05);
+    lastFrame = now;
     if (isActive("car")) {
-      if (performance.now() - lastPointerMove < 1000) carHint?.classList.add("hidden");
-      const aim = { x: pointer.x - 64, y: pointer.y + 26 };
-      const target = motion.clampPoint(aim, viewport(), { width: 92, height: 44 });
-      const before = carPosition;
-      carPosition = motion.followPoint(before, target, carPlayground.classList.contains("boosting") ? 0.31 : 0.155);
-      const dx = carPosition.x - before.x;
-      if (Math.abs(dx) > 0.45) carFacing = dx < 0 ? -1 : 1;
-      const tilt = motion.clamp((target.y - carPosition.y) * 0.12, -13, 13);
+      const boosting = now < turboEnds;
+      carState = motion.driveRemoteCar(
+        carState,
+        { turn: steerCommand, throttle: speedCommand, boost: boosting },
+        viewport(),
+        pointer,
+        delta
+      );
+      steerCommand = 0;
+      speedCommand = 0;
+
+      // Rotate the body in its actual direction of travel.
       car.style.transform =
-        `translate3d(${carPosition.x}px, ${carPosition.y}px, 0) rotate(${tilt}deg) scaleX(${carFacing})`;
-      carPlayground.classList.toggle("driving",
-        carPlayground.classList.contains("boosting") || motion.distance(carPosition, target) > 2);
+        `translate3d(${carState.x}px, ${carState.y}px, 0) rotate(${carState.heading}rad)`;
+      carPlayground.classList.toggle("boosting", boosting);
+      carPlayground.classList.toggle("driving", boosting || Math.abs(carState.speed) > 7);
     }
     requestAnimationFrame(animateCar);
   };
-  animateCar();
+  requestAnimationFrame(animateCar);
 })();
