@@ -54,9 +54,13 @@
     { element: dog, position: { x: pointer.x - 100, y: pointer.y + 75 }, offset: { x: -80, y: 62 }, smoothing: 0.085, facing: 1, pawRotation: -9 },
     { element: cat, position: { x: pointer.x + 40, y: pointer.y + 50 }, offset: { x: 32, y: 36 }, smoothing: 0.135, facing: 1, pawRotation: 9 }
   ];
+
   let lastPaw = 0;
-  let chaseTarget = null;
-  let chaseEnds = 0;
+  let fetchState = null;
+  let fetchBall = null;
+  let lastThrow = 0;
+  let lastFetcher = -1;
+  let previousPetFrame = performance.now();
 
   const sparkBurst = (x, y, count = 8) => {
     for (let i = 0; i < count; i += 1) {
@@ -94,64 +98,127 @@
     window.setTimeout(() => mark.remove(), 1200);
   };
 
-  document.addEventListener("pointerdown", (event) => {
-    if (!finePointer || !isActive("pets") || event.button !== 0 || interactive(event.target)) return;
-    chaseTarget = { x: event.clientX, y: event.clientY };
-    chaseEnds = performance.now() + 1050;
+  const petCenter = (pet) => ({ x: pet.position.x + 22, y: pet.position.y + 23 });
+  const clearFetch = () => {
+    fetchState = null;
+    fetchBall?.remove();
+    fetchBall = null;
+    pets.forEach((pet) => pet.element.classList.remove("targeted", "is-carrying"));
+  };
+  const throwBall = (x, y) => {
+    if (!isActive("pets") || performance.now() - lastThrow < 220) return;
+    lastThrow = performance.now();
+    clearFetch();
+
+    const from = { x, y };
+    const view = viewport();
+    const directionX = x < view.width * 0.5 ? 1 : -1;
+    const directionY = y < view.height * 0.48 ? 1 : -1;
+    const landing = motion.clampPoint({
+      x: x + directionX * Math.min(280, view.width * 0.34),
+      y: y + directionY * Math.min(145, view.height * 0.23)
+    }, view, { width: 14, height: 14 }, 22);
+
+    const petDistances = pets.map((pet) => motion.distance(petCenter(pet), landing));
+    let selected = petDistances[0] <= petDistances[1] ? 0 : 1;
+    if (lastFetcher === selected && Math.abs(petDistances[0] - petDistances[1]) < 65) {
+      selected = 1 - selected;
+    }
+    lastFetcher = selected;
+    fetchState = motion.createFetchState(from, landing, selected);
+    fetchBall = document.createElement("span");
+    fetchBall.className = "pet-ball fetch-ball";
+    document.body.appendChild(fetchBall);
+    pets[selected].element.classList.add("targeted");
+    emote(pets[selected], "!");
     petHint?.classList.add("hidden");
+  };
 
-    const ball = document.createElement("span");
-    ball.className = "pet-ball";
-    const startX = event.clientX - 40;
-    const startY = event.clientY - 60;
-    ball.style.setProperty("--ball-start-x", `${startX}px`);
-    ball.style.setProperty("--ball-start-y", `${startY}px`);
-    ball.style.setProperty("--ball-mid-x", `${event.clientX - 12}px`);
-    ball.style.setProperty("--ball-mid-y", `${event.clientY - 45}px`);
-    ball.style.setProperty("--ball-end-x", `${event.clientX}px`);
-    ball.style.setProperty("--ball-end-y", `${event.clientY}px`);
-    document.body.appendChild(ball);
-    window.setTimeout(() => ball.remove(), 1250);
-
-    dog.classList.add("excited");
-    cat.classList.add("pounce");
-    emote(pets[0], "!");
-    emote(pets[1], "✦");
-    window.setTimeout(() => {
-      dog.classList.remove("excited");
-      cat.classList.remove("pounce");
-    }, 950);
-    window.setTimeout(() => sparkBurst(event.clientX, event.clientY), 760);
+  document.addEventListener("pointerdown", (event) => {
+    if (!finePointer || event.button !== 0 || interactive(event.target)) return;
+    throwBall(event.clientX, event.clientY);
   });
 
-  const animatePets = () => {
+  // Tap blank space to throw on touchscreens; swipes and links remain untouched.
+  let fetchTap = null;
+  window.addEventListener("pointerdown", (event) => {
+    if (finePointer || event.pointerType !== "touch" || !isActive("pets") || interactive(event.target)) return;
+    fetchTap = { x: event.clientX, y: event.clientY, id: event.pointerId, time: performance.now() };
+  }, { passive: true });
+  window.addEventListener("pointerup", (event) => {
+    if (!fetchTap || event.pointerId !== fetchTap.id) return;
+    const duration = performance.now() - fetchTap.time;
+    const moved = motion.distance(fetchTap, { x: event.clientX, y: event.clientY });
+    fetchTap = null;
+    if (duration <= 550 && moved < 14 && !interactive(event.target)) {
+      throwBall(event.clientX, event.clientY);
+    }
+  }, { passive: true });
+  window.addEventListener("pointercancel", () => { fetchTap = null; }, { passive: true });
+
+  const animatePets = (now) => {
+    const dt = Math.min(Math.max((now - previousPetFrame) / 1000, 0), 0.05);
+    previousPetFrame = now;
     if (isActive("pets")) {
-      const now = performance.now();
-      const chasing = chaseTarget && now < chaseEnds;
-      if (now - lastPointerMove < 1000) petHint?.classList.add("hidden");
-      for (const [index, pet] of pets.entries()) {
-        const aim = chasing
-          ? { x: chaseTarget.x - 18 + (index ? 25 : -25), y: chaseTarget.y - 10 + index * 15 }
-          : { x: pointer.x + pet.offset.x, y: pointer.y + pet.offset.y };
-        const target = motion.clampPoint(aim, viewport(), { width: 44, height: 46 });
+      const fetcher = fetchState ? pets[fetchState.petIndex] : null;
+      const returningTo = { x: pointer.x, y: pointer.y + 22 };
+
+      for (const pet of pets) {
         const before = pet.position;
-        pet.position = motion.followPoint(before, target, chasing ? 0.19 : pet.smoothing);
+        let target;
+        if (fetchState && fetcher === pet && ["flying", "chasing", "returning"].includes(fetchState.phase)) {
+          const goal = fetchState.phase === "returning" ? returningTo : fetchState.landing;
+          target = motion.clampPoint({ x: goal.x - 22, y: goal.y - 23 }, viewport(), { width: 44, height: 46 });
+          pet.position = motion.moveTowards(before, target, (fetchState.phase === "returning" ? 330 : 275) * dt);
+        } else {
+          target = motion.clampPoint({
+            x: pointer.x + pet.offset.x, y: pointer.y + pet.offset.y
+          }, viewport(), { width: 44, height: 46 });
+          const smooth = 1 - Math.pow(1 - pet.smoothing, dt * 60);
+          pet.position = motion.followPoint(before, target, smooth);
+        }
+
         const dx = pet.position.x - before.x;
-        if (Math.abs(dx) > 0.35) pet.facing = dx < 0 ? -1 : 1;
+        if (Math.abs(dx) > 0.12) pet.facing = dx < 0 ? -1 : 1;
         pet.element.style.transform =
           `translate3d(${pet.position.x}px, ${pet.position.y}px, 0) scaleX(${pet.facing})`;
-        pet.element.classList.toggle("targeted", !!chasing);
+        pet.element.classList.toggle("targeted", fetcher === pet && fetchState?.phase !== "delivered");
+        pet.element.classList.toggle("is-carrying", fetcher === pet && fetchState?.phase === "returning");
       }
-      if (finePointer && (chasing || now - lastPointerMove < 1200) && motion.distance(pets[0].position, pointer) > 18 && now - lastPaw > 520) {
+
+      if (fetchState && fetcher) {
+        const beforePhase = fetchState.phase;
+        fetchState = motion.advanceFetchState(fetchState, petCenter(fetcher), returningTo, dt);
+        const ballPos = motion.fetchBallPosition(fetchState, petCenter(fetcher), returningTo);
+        if (fetchBall) {
+          fetchBall.style.transform =
+            `translate3d(${ballPos.x}px, ${ballPos.y}px, 0) translate(-50%, -50%)`;
+          fetchBall.classList.toggle("is-carried", fetchState.phase === "returning");
+          fetchBall.classList.toggle("is-delivered", fetchState.phase === "delivered");
+        }
+        if (beforePhase !== fetchState.phase) {
+          if (fetchState.phase === "returning") {
+            emote(fetcher, "🎾");
+            sparkBurst(fetchState.landing.x, fetchState.landing.y, 6);
+          } else if (fetchState.phase === "delivered") {
+            fetcher.element.classList.remove("is-carrying");
+            emote(fetcher, "♥");
+            sparkBurst(returningTo.x, returningTo.y, 9);
+          } else if (fetchState.phase === "complete") {
+            clearFetch();
+          }
+        }
+      }
+
+      if (finePointer && !fetchState && now - lastPointerMove < 1200 &&
+          motion.distance(petCenter(pets[0]), pointer) > 22 && now - lastPaw > 620) {
         lastPaw = now;
         for (const pet of pets) pawPrint(pet);
       }
-      if (chaseTarget && now >= chaseEnds) chaseTarget = null;
     }
     requestAnimationFrame(animatePets);
   };
-  animatePets();
-
+  requestAnimationFrame(animatePets);
 
   // RC car: the glowing mouse ball is the remote, NOT a destination.
   const carPlayground = document.createElement("div");
