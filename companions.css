@@ -36,6 +36,44 @@ body.portfolio-live.experience-car .car-playground {
 }
 .pet-dog,
 .pet-cat { animation: none !important; opacity: 1; }
+.pet[hidden] { display: none !important; }
+
+/* Active companion switch: visible and keyboard/touch accessible only in pet mode. */
+.pet-selector { display: none; }
+body.portfolio-live.experience-pets .pet-selector {
+  display: flex;
+  position: fixed;
+  z-index: 50010;
+  top: 83px;
+  right: 18px;
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid rgba(142,230,207,.38);
+  border-radius: 14px;
+  background: rgba(8,17,31,.91);
+  box-shadow: 0 12px 30px rgba(0,0,0,.22);
+}
+.pet-selector button {
+  min-height: 40px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #dceeff;
+  font: inherit;
+  font-size: .82rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+.pet-selector button[aria-pressed="true"],
+.pet-selector button:hover {
+  background: rgba(142,230,207,.18);
+  border-color: rgba(142,230,207,.45);
+}
+.pet-selector button:focus-visible {
+  outline: 2px solid #8ee6cf;
+  outline-offset: 2px;
+}
 .pet-body { animation: petStep .48s ease-in-out infinite alternate; }
 
 .car-machine {
@@ -86,6 +124,11 @@ body.portfolio-live.experience-car .car-playground {
   body.portfolio-live.experience-car .car-playground {
     display: block !important;
   }
+  body.portfolio-live.experience-pets .pet-selector {
+    top: 120px;
+    right: 10px;
+  }
+  .pet-selector button { min-height: 44px; }
   .pet-hint,
   .car-hint {
     top: 80px;
@@ -236,5 +279,5 @@ body.portfolio-live.experience-car .car-playground {
   .car-hint { top: 75px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .rc-touch-pad { display: none !important; }
+  .rc-touch-pad, .pet-selector { display: none !important; }
 }
