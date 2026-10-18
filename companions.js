@@ -42,14 +42,26 @@
   playground.innerHTML = `
     <div class="pet pet-dog" id="pet-dog"><span class="pet-body">🐕</span></div>
     <div class="pet pet-cat" id="pet-cat"><span class="pet-body">🐈</span></div>
-    <div class="pet-hint">guide the pets with your cursor • click to throw the ball</div>
+    <div class="pet-hint">guide your pet with the cursor • click to throw the ball far away</div>
   `;
   document.body.appendChild(playground);
+
+  // Only the chosen animal is shown. The picker remains usable by mouse,
+  // keyboard and touch without intercepting clicks on portfolio content.
+  const petSelector = document.createElement("div");
+  petSelector.className = "pet-selector";
+  petSelector.setAttribute("role", "group");
+  petSelector.setAttribute("aria-label", "Choose one pet");
+  petSelector.innerHTML = `
+    <button type="button" data-pet="0" aria-pressed="true">🐕 Dog</button>
+    <button type="button" data-pet="1" aria-pressed="false">🐈 Cat</button>
+  `;
+  document.body.appendChild(petSelector);
 
   const dog = playground.querySelector("#pet-dog");
   const cat = playground.querySelector("#pet-cat");
   const petHint = playground.querySelector(".pet-hint");
-  if (!finePointer) petHint.textContent = "tap empty space to throw a ball for the pets";
+  if (!finePointer) petHint.textContent = "tap empty space to throw a ball for your pet";
   const pets = [
     { element: dog, position: { x: pointer.x - 100, y: pointer.y + 75 }, offset: { x: -80, y: 62 }, smoothing: 0.085, facing: 1, pawRotation: -9 },
     { element: cat, position: { x: pointer.x + 40, y: pointer.y + 50 }, offset: { x: 32, y: 36 }, smoothing: 0.135, facing: 1, pawRotation: 9 }
@@ -59,7 +71,7 @@
   let fetchState = null;
   let fetchBall = null;
   let lastThrow = -Infinity;
-  let lastFetcher = -1;
+  let activePetIndex = 0;
   let previousPetFrame = performance.now();
 
   const sparkBurst = (x, y, count = 8) => {
@@ -105,32 +117,45 @@
     fetchBall = null;
     pets.forEach((pet) => pet.element.classList.remove("targeted", "is-carrying"));
   };
+  const setActivePet = (index) => {
+    const selected = index === 1 ? 1 : 0;
+    if (selected !== activePetIndex) clearFetch();
+    activePetIndex = selected;
+    pets.forEach((pet, petIndex) => {
+      // Hidden is a real visibility guard, not just a faded-out animation.
+      pet.element.hidden = petIndex !== selected;
+      if (petIndex === selected) {
+        pet.position = motion.clampPoint({
+          x: pointer.x + pet.offset.x, y: pointer.y + pet.offset.y
+        }, viewport(), { width: 44, height: 46 });
+      }
+    });
+    petSelector.querySelectorAll("button").forEach((button) => {
+      button.setAttribute("aria-pressed", String(Number(button.dataset.pet) === selected));
+    });
+    try { sessionStorage.setItem("cnaSelectedPet", String(selected)); } catch (_) {}
+  };
+  let savedPetIndex = 0;
+  try { savedPetIndex = sessionStorage.getItem("cnaSelectedPet") === "1" ? 1 : 0; } catch (_) {}
+  setActivePet(savedPetIndex);
+  petSelector.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-pet]");
+    if (button) setActivePet(Number(button.dataset.pet));
+  });
+
   const throwBall = (x, y) => {
     if (!isActive("pets") || performance.now() - lastThrow < 220) return;
     lastThrow = performance.now();
     clearFetch();
 
     const from = { x, y };
-    const view = viewport();
-    const directionX = x < view.width * 0.5 ? 1 : -1;
-    const directionY = y < view.height * 0.48 ? 1 : -1;
-    const landing = motion.clampPoint({
-      x: x + directionX * Math.min(280, view.width * 0.34),
-      y: y + directionY * Math.min(145, view.height * 0.23)
-    }, view, { width: 14, height: 14 }, 22);
-
-    const petDistances = pets.map((pet) => motion.distance(petCenter(pet), landing));
-    let selected = petDistances[0] <= petDistances[1] ? 0 : 1;
-    if (lastFetcher === selected && Math.abs(petDistances[0] - petDistances[1]) < 65) {
-      selected = 1 - selected;
-    }
-    lastFetcher = selected;
-    fetchState = motion.createFetchState(from, landing, selected);
+    const landing = motion.longThrowLanding(from, viewport());
+    fetchState = motion.createFetchState(from, landing, activePetIndex);
     fetchBall = document.createElement("span");
     fetchBall.className = "pet-ball fetch-ball";
     document.body.appendChild(fetchBall);
-    pets[selected].element.classList.add("targeted");
-    emote(pets[selected], "!");
+    pets[activePetIndex].element.classList.add("targeted");
+    emote(pets[activePetIndex], "!");
     petHint?.classList.add("hidden");
   };
 
@@ -161,15 +186,21 @@
     previousPetFrame = now;
     if (isActive("pets")) {
       const fetcher = fetchState ? pets[fetchState.petIndex] : null;
-      const returningTo = { x: pointer.x, y: pointer.y + 22 };
+      const returningTo = motion.clampPoint(
+        { x: pointer.x, y: pointer.y + 22 }, viewport(), { width: 14, height: 14 }, 26
+      );
 
-      for (const pet of pets) {
+      for (const [petIndex, pet] of pets.entries()) {
+        if (petIndex !== activePetIndex) continue;
         const before = pet.position;
         let target;
-        if (fetchState && fetcher === pet && ["flying", "chasing", "returning"].includes(fetchState.phase)) {
+        if (fetchState && fetcher === pet && ["chasing", "returning"].includes(fetchState.phase)) {
           const goal = fetchState.phase === "returning" ? returningTo : fetchState.landing;
           target = motion.clampPoint({ x: goal.x - 22, y: goal.y - 23 }, viewport(), { width: 44, height: 46 });
           pet.position = motion.moveTowards(before, target, (fetchState.phase === "returning" ? 330 : 275) * dt);
+        } else if (fetchState && fetcher === pet && fetchState.phase === "flying") {
+          // The pet runs after the ball once it lands, not while it is airborne.
+          pet.position = before;
         } else {
           target = motion.clampPoint({
             x: pointer.x + pet.offset.x, y: pointer.y + pet.offset.y
@@ -211,9 +242,9 @@
       }
 
       if (finePointer && !fetchState && now - lastPointerMove < 1200 &&
-          motion.distance(petCenter(pets[0]), pointer) > 22 && now - lastPaw > 620) {
+          motion.distance(petCenter(pets[activePetIndex]), pointer) > 22 && now - lastPaw > 620) {
         lastPaw = now;
-        for (const pet of pets) pawPrint(pet);
+        pawPrint(pets[activePetIndex]);
       }
     }
     requestAnimationFrame(animatePets);

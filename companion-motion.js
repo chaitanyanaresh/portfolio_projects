@@ -25,6 +25,19 @@
     return { x: from.x + (to.x - from.x) * scale, y: from.y + (to.y - from.y) * scale };
   }
 
+  // Pick the farthest opposite corner in the usable viewport, so every click
+  // produces a substantial throw even when the cursor is near an edge.
+  function longThrowLanding(from, viewport, padding = 26) {
+    const minX = padding;
+    const minY = padding;
+    const maxX = Math.max(minX, viewport.width - 14 - padding);
+    const maxY = Math.max(minY, viewport.height - 14 - padding);
+    return {
+      x: from.x <= (minX + maxX) / 2 ? maxX : minX,
+      y: from.y <= (minY + maxY) / 2 ? maxY : minY
+    };
+  }
+
   function applyDeadzone(input, deadzone = 0.13) {
     const magnitude = Math.abs(clamp(input, -1, 1));
     if (magnitude <= deadzone) return 0;
@@ -94,6 +107,7 @@
       from: { x: from.x, y: from.y },
       landing: { x: landing.x, y: landing.y },
       petIndex,
+      flightDuration: clamp(distance(from, landing) / 600, 0.65, 1.8),
       delivered: false
     };
   }
@@ -101,7 +115,7 @@
     if (!state) return null;
     const dt = clamp(deltaSeconds, 0, 0.08);
     const next = { ...state, elapsed: state.elapsed + dt };
-    if (next.phase === "flying" && next.elapsed >= 0.62) {
+    if (next.phase === "flying" && next.elapsed >= (next.flightDuration || 0.62)) {
       next.phase = "chasing";
       next.elapsed = 0;
     } else if (next.phase === "chasing" && distance(petCenter, next.landing) <= 25) {
@@ -118,10 +132,11 @@
   }
   function fetchBallPosition(fetch, petCenter, returnTarget) {
     if (fetch.phase === "flying") {
-      const t = clamp(fetch.elapsed / 0.62, 0, 1);
+      const t = clamp(fetch.elapsed / (fetch.flightDuration || 0.62), 0, 1);
+      const height = clamp(distance(fetch.from, fetch.landing) * 0.18, 70, 145);
       return {
         x: fetch.from.x + (fetch.landing.x - fetch.from.x) * t,
-        y: fetch.from.y + (fetch.landing.y - fetch.from.y) * t - Math.sin(t * Math.PI) * 80
+        y: fetch.from.y + (fetch.landing.y - fetch.from.y) * t - Math.sin(t * Math.PI) * height
       };
     }
     if (fetch.phase === "returning") return { x: petCenter.x + 12, y: petCenter.y + 8 };
@@ -130,7 +145,7 @@
   }
 
   root.CompanionMotion = Object.freeze({
-    clamp, clampPoint, followPoint, distance, moveTowards,
+    clamp, clampPoint, followPoint, distance, moveTowards, longThrowLanding,
     applyDeadzone, pointerRemoteAxes, driveRemoteCar,
     createFetchState, advanceFetchState, fetchBallPosition
   });

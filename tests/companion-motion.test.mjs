@@ -17,10 +17,10 @@ test("both browser scripts parse and load in the correct order", () => {
   assert.doesNotThrow(() => new vm.Script(js));
   assert.doesNotThrow(() => new vm.Script(motionJs));
   const base = html.indexOf('src="script.js?v=20261017-1"');
-  const helpers = html.indexOf('src="companion-motion.js?v=20261017-3"');
-  const experience = html.indexOf('src="companions.js?v=20261017-3"');
+  const helpers = html.indexOf('src="companion-motion.js?v=20261018-1"');
+  const experience = html.indexOf('src="companions.js?v=20261018-1"');
   assert.ok(base >= 0 && helpers > base && experience > helpers);
-  assert.ok(html.includes('href="companions.css?v=20261017-2"'));
+  assert.ok(html.includes('href="companions.css?v=20261018-1"'));
 });
 
 test("shared pet movement handles both dimensions and screen bounds", () => {
@@ -150,4 +150,56 @@ test("RC controls work with mouse, keyboard and touch without blocking the page"
   assert.match(css, /touch-action:\s*none/);
   assert.match(css, /pointer-events:\s*none/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
+});
+
+test("ball throws reach the far side on desktop and mobile without leaving the viewport", () => {
+  for (const screen of [view, { width: 390, height: 844 }]) {
+    const starts = [
+      { x: 18, y: 18 },
+      { x: screen.width - 18, y: screen.height - 18 },
+      { x: screen.width / 2, y: screen.height / 2 },
+      { x: screen.width / 3, y: screen.height / 4 }
+    ];
+    for (const start of starts) {
+      const landing = motion.longThrowLanding(start, screen);
+      assert.ok(landing.x >= 26 && landing.x <= screen.width - 40);
+      assert.ok(landing.y >= 26 && landing.y <= screen.height - 40);
+      assert.ok(
+        motion.distance(start, landing) > Math.min(screen.width, screen.height) * 0.46,
+        "Throw should cross a substantial portion of the viewport"
+      );
+    }
+  }
+  const center = { x: 640, y: 400 };
+  assert.ok(motion.distance(center, motion.longThrowLanding(center, view)) > 550);
+});
+
+test("long throws use slower, scaled flight arcs and cannot be fetched while airborne", () => {
+  const from = { x: 90, y: 100 };
+  const landing = motion.longThrowLanding(from, view);
+  const fetch = motion.createFetchState(from, landing, 0);
+  assert.ok(fetch.flightDuration > 1, "Long throw must take visibly longer than a short toss");
+  assert.equal(motion.advanceFetchState(fetch, landing, from, 0.08).phase, "flying");
+  const midFlight = { ...fetch, elapsed: fetch.flightDuration / 2 };
+  const ball = motion.fetchBallPosition(midFlight, landing, from);
+  assert.ok(ball.x > from.x && ball.x < landing.x);
+  assert.ok(ball.y < (from.y + landing.y) / 2, "A flying ball has a visible arc");
+  let state = fetch;
+  for (let i = 0; i < 35 && state.phase === "flying"; i++) {
+    state = motion.advanceFetchState(state, landing, from, 0.08);
+  }
+  assert.equal(state.phase, "chasing");
+  assert.equal(motion.advanceFetchState(state, landing, from, 0.05).phase, "returning");
+});
+
+test("pet chooser renders one animal and never lets the hidden pet chase a ball", () => {
+  assert.match(js, /petSelector\.setAttribute\("role", "group"\)/);
+  assert.match(js, /pet\.element\.hidden = petIndex !== selected/);
+  assert.match(js, /if \(petIndex !== activePetIndex\) continue/);
+  assert.match(js, /motion\.createFetchState\(from, landing, activePetIndex\)/);
+  assert.match(js, /fetchState\.phase === "flying"/);
+  assert.match(js, /sessionStorage\.setItem\("cnaSelectedPet"/);
+  assert.match(css, /\.pet\[hidden\] \{ display: none !important; \}/);
+  assert.match(css, /\.pet-selector button:focus-visible/);
+  assert.match(html, /Choose a dog or cat, one at a time/);
 });
